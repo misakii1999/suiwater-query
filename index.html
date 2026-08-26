@@ -10,9 +10,73 @@
 <div class=stats><div class=stat>查询结果<div class=num id=t>0</div></div><div class=stat>查询成功<div class=num id=f>0</div></div><div class=stat>未找到<div class=num id=n>0</div></div></div>
 <div class=card><h3>查询结果</h3><div class=scroll id=r><div class=empty>暂无查询结果</div></div></div></div>
 <script>
-const API_BASE="https://YOUR-API-DOMAIN",API_KEY="YOUR-API-KEY";let rows=[];
-const esc=x=>{let d=document.createElement("div");d.textContent=x??"";return d.innerHTML};
-async function searchData(){let text=q.value.trim();if(!text)return alert("请输入表身号或 IMEI");status.textContent="正在查询...";try{let x=await fetch(API_BASE+"/api/search",{method:"POST",headers:{"Content-Type":"application/json","X-API-Key":API_KEY},body:JSON.stringify({query:text,fuzzy:fuzzy.checked,limit:Math.min(Math.max(Number(limit.value)||200,1),1000)})});let d=await x.json();if(!x.ok||!d.success)throw Error(d.message||("HTTP "+x.status));rows=d.results||[];t.textContent=d.total||0;f.textContent=d.found||0;n.textContent=d.not_found||0;render();status.textContent="查询完成，共 "+rows.length+" 条"}catch(e){status.textContent="查询失败："+e.message}}
+const API_BASE="https://sg.oixvideos.top";
+const API_KEY="SuiWater-8925-02147039-89";
+
+let rows=[];
+
+const esc=x=>{
+    let d=document.createElement("div");
+    d.textContent=x??"";
+    return d.innerHTML;
+};
+
+async function searchData() {
+    let text = q.value.trim();
+
+    if (!text) {
+        return alert("请输入表身号或 IMEI");
+    }
+
+    status.textContent = "正在查询，请稍候...";
+
+    const btn = document.querySelector(".p");
+    btn.disabled = true;
+    btn.textContent = "⏳ 查询中...";
+
+    try {
+        let x = await fetch(API_BASE + "/api/search", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-API-Key": API_KEY
+            },
+            body: JSON.stringify({
+                query: text,
+                fuzzy: fuzzy.checked,
+                limit: Math.min(
+                        Math.max(Number(limit.value) || 200, 1),
+                        1000
+                )
+            })
+        });
+
+        let d = await x.json();
+
+        if (!x.ok || !d.success) {
+            throw Error(d.message || ("HTTP " + x.status));
+        }
+
+        rows = d.results || [];
+
+        t.textContent = d.total || 0;
+        f.textContent = d.found || 0;
+        n.textContent = d.not_found || 0;
+
+        render();
+
+        status.textContent = "查询完成，共 " + rows.length + " 条";
+
+    } catch (e) {
+
+        status.textContent = "查询失败：" + e.message;
+
+    } finally {
+
+        btn.disabled = false;
+        btn.textContent = "🔍 查询";
+    }
+}
 function render(){if(!rows.length){r.innerHTML='<div class=empty>暂无查询结果</div>';return}let h="<table><tr><th>序号</th><th>查询类型</th><th>表身号</th><th>IMEI</th><th>厂家归属</th><th>状态</th></tr>";rows.forEach((x,i)=>h+=`<tr><td>${i+1}</td><td>${esc(x.query_type)}</td><td>${esc(x.meter_no)}</td><td>${esc(x.imei)}</td><td>${esc(x.owner||"-")}</td><td class=${x.status=="已找到"?"ok":"no"}>${esc(x.status)}</td></tr>`);r.innerHTML=h+"</table>"}
 function clearAll(){q.value="";rows=[];t.textContent=f.textContent=n.textContent="0";r.innerHTML='<div class=empty>暂无查询结果</div>';status.textContent="就绪"}
 async function copyResults(){if(!rows.length)return alert("没有查询结果");await navigator.clipboard.writeText(["序号\t查询类型\t表身号\tIMEI\t厂家归属\t状态",...rows.map((x,i)=>`${i+1}\t${x.query_type}\t${x.meter_no}\t${x.imei}\t${x.owner}\t${x.status}`)].join("\n"));alert("已复制")}

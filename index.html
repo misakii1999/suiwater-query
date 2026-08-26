@@ -1,85 +1,1447 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>穗水表身号查询系统</title>
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>穗水表身号查询系统</title>
+
 <style>
-*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#eef5ff,#f8fbff);font-family:"Microsoft YaHei",Arial;color:#1f2937}.wrap{max-width:1200px;width:94%;margin:30px auto}.card,.stat{background:#fff;border-radius:18px;padding:22px;box-shadow:0 8px 30px #0001;margin-bottom:18px}.head{display:flex;justify-content:space-between;align-items:center}h1{margin:0}.sub,.tip,.status{color:#777}.tip{font-size:13px;margin-top:8px;line-height:1.7}textarea{width:100%;height:175px;padding:15px;border:1px solid #d8dee8;border-radius:12px;font-size:15px;resize:vertical}.opts{display:flex;gap:22px;margin-top:14px;align-items:center;flex-wrap:wrap}.limit{width:75px;padding:5px;border:1px solid #ddd;border-radius:6px}button{padding:10px 20px;border:0;border-radius:9px;margin:12px 8px 0 0;cursor:pointer}.p{background:#2563eb;color:#fff}.s{background:#16a34a;color:#fff}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.stat{margin:0}.num{font-size:26px;font-weight:bold;margin-top:5px}.scroll{overflow:auto}table{width:100%;border-collapse:collapse}th,td{padding:11px;border-bottom:1px solid #eee;text-align:left;white-space:nowrap}th{background:#f5f7fa}.ok{color:#16a34a;font-weight:bold}.no{color:#d33;font-weight:bold}.empty{text-align:center;color:#999;padding:40px}@media(max-width:700px){.stats{grid-template-columns:1fr}}</style>
-<div class="wrap"><div class="card head"><div><h1>穗水表身号查询系统</h1><div class="sub">表身号 / IMEI 统一查询 · 精确 · 模糊 · 批量</div></div></div>
-<div class="card"><h3>统一查询</h3><textarea id=q placeholder="请输入表身号或 IMEI
 
-支持 Excel 一列直接粘贴；多个号码可换行、空格、逗号、分号分隔。"></textarea><div class=tip>精确查询自动判断表身号或 IMEI；开启模糊查询后同时搜索两个字段。</div>
-<div class=opts><label><input type=checkbox id=fuzzy> 开启模糊查询</label><span>最多返回 <input class=limit id=limit type=number min=1 max=1000 value=200> 条</span></div>
-<button class=p onclick=searchData()>🔍 查询</button><button onclick=clearAll()>清空</button><button onclick=copyResults()>复制结果</button><button class=s onclick=exportExcel()>导出 Excel</button><div class=status id=status>就绪</div></div>
-<div class=stats><div class=stat>查询结果<div class=num id=t>0</div></div><div class=stat>查询成功<div class=num id=f>0</div></div><div class=stat>未找到<div class=num id=n>0</div></div></div>
-<div class=card><h3>查询结果</h3><div class=scroll id=r><div class=empty>暂无查询结果</div></div></div></div>
+/* =========================
+   基础
+========================= */
+
+*{
+    box-sizing:border-box;
+}
+
+html{
+    min-height:100%;
+}
+
+body{
+    margin:0;
+    min-height:100vh;
+    background:
+        radial-gradient(circle at 10% 10%,#e8f1ff 0,#f5f9ff 35%,#f8fbff 70%);
+    font-family:
+        "Microsoft YaHei",
+        "Segoe UI",
+        Arial,
+        sans-serif;
+    color:#1f2937;
+}
+
+/* =========================
+   主容器
+========================= */
+
+.wrap{
+    width:94%;
+    max-width:1400px;
+    margin:28px auto 45px;
+}
+
+/* =========================
+   卡片
+========================= */
+
+.card{
+    background:rgba(255,255,255,.96);
+    border:1px solid #e7edf5;
+    border-radius:16px;
+    box-shadow:
+        0 8px 28px rgba(31,41,55,.07);
+    margin-bottom:18px;
+}
+
+/* =========================
+   顶部
+========================= */
+
+.header{
+    padding:22px 26px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+}
+
+.logo-area{
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
+
+.logo{
+    width:48px;
+    height:48px;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:linear-gradient(135deg,#2563eb,#3b82f6);
+    color:#fff;
+    font-size:25px;
+    box-shadow:0 6px 16px rgba(37,99,235,.25);
+}
+
+.title h1{
+    margin:0;
+    font-size:24px;
+    font-weight:700;
+    color:#111827;
+}
+
+.title .sub{
+    margin-top:5px;
+    font-size:13px;
+    color:#7b8794;
+}
+
+.server-status{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 13px;
+    border-radius:20px;
+    background:#f0fdf4;
+    color:#15803d;
+    font-size:13px;
+    white-space:nowrap;
+}
+
+.server-dot{
+    width:8px;
+    height:8px;
+    background:#22c55e;
+    border-radius:50%;
+}
+
+/* =========================
+   查询区域
+========================= */
+
+.search-card{
+    padding:24px 26px 22px;
+}
+
+.section-title{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:14px;
+}
+
+.section-title h3{
+    margin:0;
+    font-size:17px;
+    color:#111827;
+}
+
+.section-title span{
+    font-size:12px;
+    color:#9ca3af;
+}
+
+/* 输入框 */
+
+textarea{
+    display:block;
+    width:100%;
+    height:190px;
+    padding:16px 17px;
+    border:1px solid #d9e1eb;
+    border-radius:11px;
+    background:#fbfdff;
+    color:#1f2937;
+    font-family:inherit;
+    font-size:15px;
+    line-height:1.65;
+    outline:none;
+    resize:vertical;
+    transition:.2s;
+}
+
+textarea:focus{
+    border-color:#60a5fa;
+    background:#fff;
+    box-shadow:0 0 0 3px rgba(59,130,246,.10);
+}
+
+textarea::placeholder{
+    color:#a4adba;
+}
+
+/* 提示 */
+
+.tip{
+    margin-top:9px;
+    color:#8a94a3;
+    font-size:12px;
+}
+
+/* =========================
+   控制栏
+========================= */
+
+.toolbar{
+    margin-top:16px;
+    padding:13px 14px;
+    border:1px solid #e7ecf3;
+    border-radius:11px;
+    background:#f8fafc;
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:15px;
+    flex-wrap:wrap;
+}
+
+.options{
+    display:flex;
+    align-items:center;
+    gap:22px;
+    flex-wrap:wrap;
+}
+
+.checkbox{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    cursor:pointer;
+    font-size:14px;
+    color:#374151;
+}
+
+.checkbox input{
+    width:16px;
+    height:16px;
+    cursor:pointer;
+}
+
+.limit-box{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    font-size:14px;
+    color:#4b5563;
+}
+
+.limit{
+    width:72px;
+    height:32px;
+    padding:4px 8px;
+    border:1px solid #d6dee8;
+    border-radius:7px;
+    background:#fff;
+    text-align:center;
+    outline:none;
+}
+
+.limit:focus{
+    border-color:#60a5fa;
+}
+
+/* =========================
+   按钮
+========================= */
+
+.buttons{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+}
+
+button{
+    height:36px;
+    padding:0 17px;
+    border:0;
+    border-radius:8px;
+    font-family:inherit;
+    font-size:14px;
+    cursor:pointer;
+    transition:.18s;
+}
+
+button:hover{
+    transform:translateY(-1px);
+}
+
+button:active{
+    transform:translateY(0);
+}
+
+button:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+    transform:none;
+}
+
+.btn-primary{
+    background:#2563eb;
+    color:#fff;
+    box-shadow:0 3px 8px rgba(37,99,235,.18);
+}
+
+.btn-primary:hover{
+    background:#1d4ed8;
+}
+
+.btn-normal{
+    background:#fff;
+    border:1px solid #d8e0ea;
+    color:#374151;
+}
+
+.btn-normal:hover{
+    background:#f8fafc;
+}
+
+.btn-green{
+    background:#16a34a;
+    color:#fff;
+}
+
+.btn-green:hover{
+    background:#15803d;
+}
+
+/* =========================
+   状态
+========================= */
+
+.status-bar{
+    min-height:24px;
+    margin-top:12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:13px;
+    color:#6b7280;
+}
+
+.status-icon{
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:#94a3b8;
+}
+
+/* =========================
+   统计
+========================= */
+
+.stats{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:16px;
+    margin-bottom:18px;
+}
+
+.stat{
+    padding:19px 22px;
+    background:#fff;
+    border:1px solid #e7edf5;
+    border-radius:15px;
+    box-shadow:0 6px 22px rgba(31,41,55,.055);
+}
+
+.stat-label{
+    font-size:13px;
+    color:#7b8794;
+}
+
+.num{
+    margin-top:5px;
+    font-size:28px;
+    line-height:1.2;
+    font-weight:700;
+    color:#111827;
+}
+
+/* =========================
+   结果区域
+========================= */
+
+.result-card{
+    overflow:hidden;
+}
+
+.result-head{
+    padding:19px 24px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border-bottom:1px solid #edf1f5;
+}
+
+.result-head h3{
+    margin:0;
+    font-size:17px;
+}
+
+.result-info{
+    color:#9ca3af;
+    font-size:12px;
+}
+
+.scroll{
+    width:100%;
+    max-height:560px;
+    overflow:auto;
+}
+
+/* =========================
+   表格
+========================= */
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:850px;
+}
+
+th,
+td{
+    padding:12px 15px;
+    border-bottom:1px solid #edf1f5;
+    text-align:left;
+    white-space:nowrap;
+    font-size:13px;
+}
+
+th{
+    position:sticky;
+    top:0;
+    z-index:2;
+    background:#f7f9fc;
+    color:#4b5563;
+    font-weight:600;
+}
+
+tbody tr:hover{
+    background:#f8fbff;
+}
+
+td{
+    color:#374151;
+}
+
+.ok{
+    color:#16a34a !important;
+    font-weight:600;
+}
+
+.no{
+    color:#dc2626 !important;
+    font-weight:600;
+}
+
+/* =========================
+   空状态
+========================= */
+
+.empty{
+    height:240px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    color:#a0a8b4;
+    font-size:14px;
+    gap:9px;
+}
+
+.empty-icon{
+    font-size:32px;
+    opacity:.55;
+}
+
+/* =========================
+   滚动条
+========================= */
+
+::-webkit-scrollbar{
+    width:8px;
+    height:8px;
+}
+
+::-webkit-scrollbar-track{
+    background:#f3f5f8;
+}
+
+::-webkit-scrollbar-thumb{
+    background:#cbd5e1;
+    border-radius:10px;
+}
+
+::-webkit-scrollbar-thumb:hover{
+    background:#94a3b8;
+}
+
+/* =========================
+   手机
+========================= */
+
+@media(max-width:800px){
+
+    .wrap{
+        width:96%;
+        margin-top:15px;
+    }
+
+    .header{
+        padding:18px;
+    }
+
+    .server-status{
+        display:none;
+    }
+
+    .title h1{
+        font-size:20px;
+    }
+
+    .search-card{
+        padding:18px;
+    }
+
+    textarea{
+        height:170px;
+    }
+
+    .toolbar{
+        align-items:stretch;
+        flex-direction:column;
+    }
+
+    .buttons{
+        width:100%;
+    }
+
+    button{
+        flex:1;
+    }
+
+    .stats{
+        grid-template-columns:1fr;
+        gap:10px;
+    }
+
+    .stat{
+        padding:15px 18px;
+    }
+
+    .result-head{
+        padding:16px 18px;
+    }
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+    <!-- =========================
+         顶部
+    ========================== -->
+
+    <div class="card header">
+
+        <div class="logo-area">
+
+            <div class="logo">
+                💧
+            </div>
+
+            <div class="title">
+
+                <h1>穗水表身号查询系统</h1>
+
+                <div class="sub">
+                    表身号 / IMEI 统一查询 · 精确 · 模糊 · 批量
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="server-status">
+            <span class="server-dot"></span>
+            API 服务正常
+        </div>
+
+    </div>
+
+
+    <!-- =========================
+         查询
+    ========================== -->
+
+    <div class="card search-card">
+
+        <div class="section-title">
+
+            <h3>统一查询</h3>
+
+            <span>
+                支持批量查询
+            </span>
+
+        </div>
+
+
+        <textarea
+            id="q"
+            placeholder="请输入表身号或 IMEI
+
+支持 Excel 一列直接粘贴；
+多个号码可使用换行、空格、逗号、分号分隔。"
+        ></textarea>
+
+
+        <div class="tip">
+            精确查询自动判断表身号或 IMEI；开启模糊查询后，将同时搜索表身号和 IMEI。
+        </div>
+
+
+        <!-- 控制栏 -->
+
+        <div class="toolbar">
+
+            <div class="options">
+
+                <label class="checkbox">
+
+                    <input
+                        type="checkbox"
+                        id="fuzzy"
+                    >
+
+                    <span>开启模糊查询</span>
+
+                </label>
+
+
+                <div class="limit-box">
+
+                    <span>最多返回</span>
+
+                    <input
+                        class="limit"
+                        id="limit"
+                        type="number"
+                        min="1"
+                        max="1000"
+                        value="200"
+                    >
+
+                    <span>条</span>
+
+                </div>
+
+            </div>
+
+
+            <div class="buttons">
+
+                <button
+                    class="btn-primary"
+                    id="searchBtn"
+                    onclick="searchData()"
+                >
+                    🔍 查询
+                </button>
+
+                <button
+                    class="btn-normal"
+                    onclick="clearAll()"
+                >
+                    清空
+                </button>
+
+                <button
+                    class="btn-normal"
+                    onclick="copyResults()"
+                >
+                    复制结果
+                </button>
+
+                <button
+                    class="btn-green"
+                    id="exportBtn"
+                    onclick="exportExcel()"
+                >
+                    导出 Excel
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="status-bar">
+
+            <span
+                class="status-icon"
+                id="statusIcon"
+            ></span>
+
+            <span id="status">
+                就绪
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================
+         统计
+    ========================== -->
+
+    <div class="stats">
+
+        <div class="stat">
+
+            <div class="stat-label">
+                查询结果
+            </div>
+
+            <div
+                class="num"
+                id="t"
+            >
+                0
+            </div>
+
+        </div>
+
+
+        <div class="stat">
+
+            <div class="stat-label">
+                查询成功
+            </div>
+
+            <div
+                class="num"
+                id="f"
+            >
+                0
+            </div>
+
+        </div>
+
+
+        <div class="stat">
+
+            <div class="stat-label">
+                未找到
+            </div>
+
+            <div
+                class="num"
+                id="n"
+            >
+                0
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================
+         查询结果
+    ========================== -->
+
+    <div class="card result-card">
+
+        <div class="result-head">
+
+            <h3>
+                查询结果
+            </h3>
+
+            <div
+                class="result-info"
+                id="resultInfo"
+            >
+                暂无数据
+            </div>
+
+        </div>
+
+
+        <div class="scroll" id="r">
+
+            <div class="empty">
+
+                <div class="empty-icon">
+                    🔎
+                </div>
+
+                <div>
+                    暂无查询结果
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
 <script>
-const API_BASE="https://sg.oixvideos.top";
-const API_KEY="SuiWater-8925-02147039-89";
 
-let rows=[];
+/* =========================================================
+   API 配置
+========================================================= */
 
-const esc=x=>{
-    let d=document.createElement("div");
-    d.textContent=x??"";
+const API_BASE =
+    "https://sg.oixvideos.top";
+
+const API_KEY =
+    "SuiWater-8925-02147039-89";
+
+
+let rows = [];
+
+
+/* =========================================================
+   HTML 转义
+========================================================= */
+
+const esc = x => {
+
+    let d = document.createElement("div");
+
+    d.textContent = x ?? "";
+
     return d.innerHTML;
 };
 
-async function searchData() {
-    let text = q.value.trim();
 
-    if (!text) {
-        return alert("请输入表身号或 IMEI");
+/* =========================================================
+   状态
+========================================================= */
+
+function setStatus(text, loading=false){
+
+    const status =
+        document.getElementById("status");
+
+    const icon =
+        document.getElementById("statusIcon");
+
+    status.textContent = text;
+
+    if(loading){
+
+        icon.style.background = "#f59e0b";
+
+    }else{
+
+        icon.style.background = "#22c55e";
+
     }
 
-    status.textContent = "正在查询，请稍候...";
+}
 
-    const btn = document.querySelector(".p");
+
+/* =========================================================
+   查询
+========================================================= */
+
+async function searchData(){
+
+    let text =
+        document.getElementById("q").value.trim();
+
+    if(!text){
+
+        alert("请输入表身号或 IMEI");
+
+        return;
+
+    }
+
+
+    const fuzzy =
+        document.getElementById("fuzzy");
+
+    const limit =
+        document.getElementById("limit");
+
+    const btn =
+        document.getElementById("searchBtn");
+
+
+    setStatus(
+        "正在查询，请稍候...",
+        true
+    );
+
+
     btn.disabled = true;
-    btn.textContent = "⏳ 查询中...";
 
-    try {
-        let x = await fetch(API_BASE + "/api/search", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-API-Key": API_KEY
-            },
-            body: JSON.stringify({
-                query: text,
-                fuzzy: fuzzy.checked,
-                limit: Math.min(
-                        Math.max(Number(limit.value) || 200, 1),
+    btn.textContent =
+        "⏳ 查询中...";
+
+
+    try{
+
+        let x = await fetch(
+
+            API_BASE + "/api/search",
+
+            {
+
+                method:"POST",
+
+                headers:{
+
+                    "Content-Type":
+                        "application/json",
+
+                    "X-API-Key":
+                        API_KEY
+
+                },
+
+                body:JSON.stringify({
+
+                    query:text,
+
+                    fuzzy:fuzzy.checked,
+
+                    limit:Math.min(
+
+                        Math.max(
+
+                            Number(limit.value) || 200,
+
+                            1
+
+                        ),
+
                         1000
-                )
-            })
-        });
 
-        let d = await x.json();
+                    )
 
-        if (!x.ok || !d.success) {
-            throw Error(d.message || ("HTTP " + x.status));
+                })
+
+            }
+
+        );
+
+
+        let d =
+            await x.json();
+
+
+        if(!x.ok || !d.success){
+
+            throw Error(
+
+                d.message ||
+                ("HTTP " + x.status)
+
+            );
+
         }
 
-        rows = d.results || [];
 
-        t.textContent = d.total || 0;
-        f.textContent = d.found || 0;
-        n.textContent = d.not_found || 0;
+        rows =
+            d.results || [];
+
+
+        document.getElementById("t")
+            .textContent =
+            d.total || 0;
+
+
+        document.getElementById("f")
+            .textContent =
+            d.found || 0;
+
+
+        document.getElementById("n")
+            .textContent =
+            d.not_found || 0;
+
 
         render();
 
-        status.textContent = "查询完成，共 " + rows.length + " 条";
 
-    } catch (e) {
+        setStatus(
+            "查询完成，共 " +
+            rows.length +
+            " 条"
+        );
 
-        status.textContent = "查询失败：" + e.message;
 
-    } finally {
+    }catch(e){
+
+        setStatus(
+            "查询失败：" +
+            e.message
+        );
+
+        console.error(e);
+
+    }finally{
 
         btn.disabled = false;
-        btn.textContent = "🔍 查询";
+
+        btn.textContent =
+            "🔍 查询";
+
     }
+
 }
-function render(){if(!rows.length){r.innerHTML='<div class=empty>暂无查询结果</div>';return}let h="<table><tr><th>序号</th><th>查询类型</th><th>表身号</th><th>IMEI</th><th>厂家归属</th><th>状态</th></tr>";rows.forEach((x,i)=>h+=`<tr><td>${i+1}</td><td>${esc(x.query_type)}</td><td>${esc(x.meter_no)}</td><td>${esc(x.imei)}</td><td>${esc(x.owner||"-")}</td><td class=${x.status=="已找到"?"ok":"no"}>${esc(x.status)}</td></tr>`);r.innerHTML=h+"</table>"}
-function clearAll(){q.value="";rows=[];t.textContent=f.textContent=n.textContent="0";r.innerHTML='<div class=empty>暂无查询结果</div>';status.textContent="就绪"}
-async function copyResults(){if(!rows.length)return alert("没有查询结果");await navigator.clipboard.writeText(["序号\t查询类型\t表身号\tIMEI\t厂家归属\t状态",...rows.map((x,i)=>`${i+1}\t${x.query_type}\t${x.meter_no}\t${x.imei}\t${x.owner}\t${x.status}`)].join("\n"));alert("已复制")}
-async function exportExcel(){if(!rows.length)return alert("没有可导出的数据");let x=await fetch(API_BASE+"/api/export",{method:"POST",headers:{"Content-Type":"application/json","X-API-Key":API_KEY},body:JSON.stringify({results:rows})});if(!x.ok)return alert("导出失败");let b=await x.blob(),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download="穗水表身号查询结果.xlsx";a.click();URL.revokeObjectURL(u)}
-q.addEventListener("keydown",e=>{if(e.ctrlKey&&e.key=="Enter")searchData()});
+
+
+/* =========================================================
+   渲染结果
+========================================================= */
+
+function render(){
+
+    const box =
+        document.getElementById("r");
+
+    const info =
+        document.getElementById("resultInfo");
+
+
+    if(!rows.length){
+
+        box.innerHTML = `
+            <div class="empty">
+                <div class="empty-icon">🔎</div>
+                <div>暂无查询结果</div>
+            </div>
+        `;
+
+        info.textContent =
+            "暂无数据";
+
+        return;
+
+    }
+
+
+    let h = `
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>序号</th>
+
+                    <th>查询类型</th>
+
+                    <th>表身号</th>
+
+                    <th>IMEI</th>
+
+                    <th>厂家归属</th>
+
+                    <th>状态</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+    `;
+
+
+    rows.forEach((x,i)=>{
+
+        h += `
+
+            <tr>
+
+                <td>${i + 1}</td>
+
+                <td>
+                    ${esc(x.query_type)}
+                </td>
+
+                <td>
+                    ${esc(x.meter_no)}
+                </td>
+
+                <td>
+                    ${esc(x.imei)}
+                </td>
+
+                <td>
+                    ${esc(x.owner || "-")}
+                </td>
+
+                <td
+                    class="${
+                        x.status === "已找到"
+                        ? "ok"
+                        : "no"
+                    }"
+                >
+                    ${esc(x.status)}
+                </td>
+
+            </tr>
+
+        `;
+
+    });
+
+
+    h += `
+
+            </tbody>
+
+        </table>
+
+    `;
+
+
+    box.innerHTML = h;
+
+
+    info.textContent =
+        "共 " +
+        rows.length +
+        " 条";
+
+}
+
+
+/* =========================================================
+   清空
+========================================================= */
+
+function clearAll(){
+
+    document.getElementById("q")
+        .value = "";
+
+    rows = [];
+
+
+    document.getElementById("t")
+        .textContent = "0";
+
+    document.getElementById("f")
+        .textContent = "0";
+
+    document.getElementById("n")
+        .textContent = "0";
+
+
+    document.getElementById("r")
+        .innerHTML = `
+
+            <div class="empty">
+
+                <div class="empty-icon">
+                    🔎
+                </div>
+
+                <div>
+                    暂无查询结果
+                </div>
+
+            </div>
+
+        `;
+
+
+    document.getElementById("resultInfo")
+        .textContent =
+        "暂无数据";
+
+
+    setStatus("就绪");
+
+}
+
+
+/* =========================================================
+   复制
+========================================================= */
+
+async function copyResults(){
+
+    if(!rows.length){
+
+        alert("没有查询结果");
+
+        return;
+
+    }
+
+
+    const text = [
+
+        "序号\t查询类型\t表身号\tIMEI\t厂家归属\t状态",
+
+        ...rows.map((x,i)=>
+
+            `${i+1}\t` +
+            `${x.query_type}\t` +
+            `${x.meter_no}\t` +
+            `${x.imei}\t` +
+            `${x.owner}\t` +
+            `${x.status}`
+
+        )
+
+    ].join("\n");
+
+
+    try{
+
+        await navigator.clipboard.writeText(text);
+
+        setStatus(
+            "查询结果已复制到剪贴板"
+        );
+
+    }catch(e){
+
+        alert(
+            "复制失败，请检查浏览器剪贴板权限"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   导出 Excel
+========================================================= */
+
+async function exportExcel(){
+
+    if(!rows.length){
+
+        alert("没有可导出的数据");
+
+        return;
+
+    }
+
+
+    const btn =
+        document.getElementById("exportBtn");
+
+
+    btn.disabled = true;
+
+    btn.textContent =
+        "⏳ 导出中...";
+
+
+    setStatus(
+        "正在生成 Excel，请稍候...",
+        true
+    );
+
+
+    try{
+
+        let x = await fetch(
+
+            API_BASE + "/api/export",
+
+            {
+
+                method:"POST",
+
+                headers:{
+
+                    "Content-Type":
+                        "application/json",
+
+                    "X-API-Key":
+                        API_KEY
+
+                },
+
+                body:JSON.stringify({
+
+                    results:rows
+
+                })
+
+            }
+
+        );
+
+
+        if(!x.ok){
+
+            let d =
+                await x.json()
+                    .catch(()=>({}));
+
+            throw Error(
+                d.message ||
+                "导出失败"
+            );
+
+        }
+
+
+        let b =
+            await x.blob();
+
+
+        let u =
+            URL.createObjectURL(b);
+
+
+        let a =
+            document.createElement("a");
+
+
+        a.href = u;
+
+        a.download =
+            "穗水表身号查询结果.xlsx";
+
+
+        document.body.appendChild(a);
+
+        a.click();
+
+        a.remove();
+
+
+        setTimeout(()=>{
+
+            URL.revokeObjectURL(u);
+
+        },1000);
+
+
+        setStatus(
+            "Excel 导出完成"
+        );
+
+
+    }catch(e){
+
+        setStatus(
+            "导出失败：" +
+            e.message
+        );
+
+    }finally{
+
+        btn.disabled = false;
+
+        btn.textContent =
+            "导出 Excel";
+
+    }
+
+}
+
+
+/* =========================================================
+   Ctrl + Enter 查询
+========================================================= */
+
+document.getElementById("q")
+.addEventListener(
+
+    "keydown",
+
+    e=>{
+
+        if(
+            e.ctrlKey &&
+            e.key === "Enter"
+        ){
+
+            e.preventDefault();
+
+            searchData();
+
+        }
+
+    }
+
+);
+
+
+/* =========================================================
+   页面打开时检查 API
+========================================================= */
+
+async function checkAPI(){
+
+    try{
+
+        let x =
+            await fetch(
+                API_BASE + "/api/health",
+                {
+                    method:"GET"
+                }
+            );
+
+
+        let d =
+            await x.json();
+
+
+        if(x.ok && d.success){
+
+            setStatus(
+                "API 服务正常 · 数据库 " +
+                Number(d.records).toLocaleString() +
+                " 条"
+            );
+
+        }else{
+
+            setStatus(
+                "API 服务异常"
+            );
+
+        }
+
+    }catch(e){
+
+        setStatus(
+            "无法连接 API 服务"
+        );
+
+    }
+
+}
+
+
+checkAPI();
+
 </script>
+
+</body>
+</html>

@@ -54,29 +54,16 @@
         </div>
 
 
-        <div class="header-right">
+        <div class="server-status">
 
-            <div class="server-status">
+            <span
+                class="server-dot"
+                id="serverDot"
+            ></span>
 
-                <span
-                    class="server-dot"
-                    id="serverDot"
-                ></span>
-
-                <span id="serverStatus">
-                    API 服务检查中...
-                </span>
-
-            </div>
-
-
-            <button
-                class="logout"
-                id="logoutBtn"
-                type="button"
-            >
-                退出登录
-            </button>
+            <span id="serverStatus">
+                API 服务检查中...
+            </span>
 
         </div>
 
@@ -85,7 +72,7 @@
 
 
     <!-- =====================================================
-         查询
+         查询区域
     ====================================================== -->
 
     <div class="card search-card">
@@ -104,6 +91,7 @@
         </div>
 
 
+
         <textarea
             id="q"
             placeholder="请输入表身号或 IMEI
@@ -113,12 +101,14 @@
         ></textarea>
 
 
+
         <div class="tip">
 
             精确查询自动判断表身号或 IMEI；
             开启模糊查询后，将同时搜索表身号和 IMEI。
 
         </div>
+
 
 
         <!-- =================================================
@@ -145,6 +135,7 @@
                 </label>
 
 
+
                 <div class="limit-box">
 
                     <span>
@@ -152,14 +143,27 @@
                     </span>
 
 
-                    <input
+                    <select
                         class="limit"
                         id="limit"
-                        type="number"
-                        min="1"
-                        max="1000"
-                        value="200"
                     >
+
+                        <option value="50">
+                            50
+                        </option>
+
+                        <option value="100">
+                            100
+                        </option>
+
+                        <option
+                            value="200"
+                            selected
+                        >
+                            200
+                        </option>
+
+                    </select>
 
 
                     <span>
@@ -173,6 +177,10 @@
 
 
 
+            <!-- =================================================
+                 按钮
+            ================================================== -->
+
             <div class="buttons">
 
 
@@ -180,7 +188,6 @@
                     class="btn-primary"
                     id="searchBtn"
                     type="button"
-                    onclick="searchData()"
                 >
                     🔍 查询
                 </button>
@@ -188,8 +195,8 @@
 
                 <button
                     class="btn-normal"
+                    id="clearBtn"
                     type="button"
-                    onclick="clearAll()"
                 >
                     清空
                 </button>
@@ -197,8 +204,8 @@
 
                 <button
                     class="btn-normal"
+                    id="copyBtn"
                     type="button"
-                    onclick="copyResults()"
                 >
                     复制结果
                 </button>
@@ -208,13 +215,22 @@
                     class="btn-green"
                     id="exportBtn"
                     type="button"
-                    onclick="exportExcel()"
                 >
                     导出 Excel
                 </button>
 
 
+                <button
+                    class="btn-normal"
+                    id="logoutBtn"
+                    type="button"
+                >
+                    退出登录
+                </button>
+
+
             </div>
+
 
         </div>
 
@@ -316,6 +332,7 @@
                 查询结果
             </h3>
 
+
             <div
                 class="result-info"
                 id="resultInfo"
@@ -324,6 +341,7 @@
             </div>
 
         </div>
+
 
 
         <div
@@ -364,6 +382,27 @@ const API_BASE =
 
 
 /* =========================================================
+   Token
+========================================================= */
+
+let token =
+    sessionStorage.getItem(
+        "suiwater_token"
+    );
+
+
+/* =========================================================
+   如果没有 Token，直接返回登录页面
+========================================================= */
+
+if (!token) {
+
+    location.replace("index.html");
+
+}
+
+
+/* =========================================================
    当前结果
 ========================================================= */
 
@@ -371,84 +410,45 @@ let rows = [];
 
 
 /* =========================================================
-   Token
+   DOM
 ========================================================= */
 
-function getToken() {
+const q =
+    document.getElementById("q");
 
-    return sessionStorage.getItem(
-        "suiwater_token"
-    );
+const fuzzy =
+    document.getElementById("fuzzy");
 
-}
+const limit =
+    document.getElementById("limit");
 
+const searchBtn =
+    document.getElementById("searchBtn");
 
-/* =========================================================
-   检查登录
-========================================================= */
+const clearBtn =
+    document.getElementById("clearBtn");
 
-async function checkLogin() {
+const copyBtn =
+    document.getElementById("copyBtn");
 
-    const token =
-        getToken();
+const exportBtn =
+    document.getElementById("exportBtn");
 
+const logoutBtn =
+    document.getElementById("logoutBtn");
 
-    if (!token) {
+const status =
+    document.getElementById("status");
 
-        location.replace(
-            "index.html"
-        );
+const statusIcon =
+    document.getElementById("statusIcon");
 
-        return false;
-    }
+const resultBox =
+    document.getElementById("r");
 
+const resultInfo =
+    document.getElementById("resultInfo");
 
-    try {
-
-        const response =
-            await fetch(
-                API_BASE + "/api/auth/check",
-                {
-                    method: "GET",
-
-                    headers: {
-                        "Authorization":
-                            "Bearer " + token
-                    }
-                }
-            );
-
-
-        if (!response.ok) {
-
-            sessionStorage.removeItem(
-                "suiwater_token"
-            );
-
-            location.replace(
-                "index.html"
-            );
-
-            return false;
-        }
-
-
-        return true;
-
-
-    } catch (error) {
-
-        console.error(error);
-
-        setStatus(
-            "无法连接 API 服务"
-        );
-
-        return false;
-
-    }
-
-}
 
 
 /* =========================================================
@@ -457,15 +457,26 @@ async function checkLogin() {
 
 function esc(value) {
 
+    if (
+        value === null ||
+        value === undefined
+    ) {
+
+        return "";
+
+    }
+
+
     const div =
         document.createElement("div");
 
     div.textContent =
-        value ?? "";
+        String(value);
 
     return div.innerHTML;
 
 }
+
 
 
 /* =========================================================
@@ -477,120 +488,103 @@ function setStatus(
     loading = false
 ) {
 
-    const status =
-        document.getElementById(
-            "status"
-        );
-
-
-    const icon =
-        document.getElementById(
-            "statusIcon"
-        );
-
-
     status.textContent =
         text;
 
 
-    icon.style.background =
-        loading
-            ? "#f59e0b"
-            : "#22c55e";
+    if (loading) {
 
-}
+        statusIcon.style.background =
+            "#f59e0b";
 
+    } else {
 
-/* =========================================================
-   API 服务状态
-========================================================= */
-
-async function checkAPI() {
-
-    const statusText =
-        document.getElementById(
-            "serverStatus"
-        );
-
-
-    const dot =
-        document.getElementById(
-            "serverDot"
-        );
-
-
-    try {
-
-        const response =
-            await fetch(
-                API_BASE + "/api/health",
-                {
-                    method: "GET"
-                }
-            );
-
-
-        const data =
-            await response.json()
-                .catch(() => ({}));
-
-
-        if (
-            response.ok &&
-            data.success
-        ) {
-
-            let text =
-                "API 服务正常";
-
-
-            if (
-                data.records !==
-                undefined
-            ) {
-
-                text +=
-                    " · 数据库 " +
-                    Number(
-                        data.records
-                    ).toLocaleString() +
-                    " 条";
-
-            }
-
-
-            statusText.textContent =
-                text;
-
-
-            dot.style.background =
-                "#22c55e";
-
-
-        } else {
-
-            statusText.textContent =
-                "API 服务异常";
-
-            dot.style.background =
-                "#ef4444";
-
-        }
-
-
-    } catch (error) {
-
-        console.error(error);
-
-        statusText.textContent =
-            "无法连接 API 服务";
-
-        dot.style.background =
-            "#ef4444";
+        statusIcon.style.background =
+            "#22c55e";
 
     }
 
 }
+
+
+
+/* =========================================================
+   统一请求函数
+========================================================= */
+
+async function apiFetch(
+    url,
+    options = {}
+) {
+
+    token =
+        sessionStorage.getItem(
+            "suiwater_token"
+        );
+
+
+    if (!token) {
+
+        location.replace(
+            "index.html"
+        );
+
+        throw new Error(
+            "未登录"
+        );
+
+    }
+
+
+    const headers = {
+
+        ...(options.headers || {}),
+
+        "Authorization":
+            "Bearer " + token
+
+    };
+
+
+    const response =
+        await fetch(
+            API_BASE + url,
+            {
+                ...options,
+                headers
+            }
+        );
+
+
+    /*
+     * Token 过期
+     */
+
+    if (response.status === 401) {
+
+        sessionStorage.removeItem(
+            "suiwater_token"
+        );
+
+        alert(
+            "登录已过期，请重新登录"
+        );
+
+        location.replace(
+            "index.html"
+        );
+
+        throw new Error(
+            "未登录或登录已过期"
+        );
+
+    }
+
+
+    return response;
+
+}
+
 
 
 /* =========================================================
@@ -601,75 +595,26 @@ async function searchData() {
 
 
     const text =
-        document
-            .getElementById("q")
-            .value
-            .trim();
+        q.value.trim();
 
 
     if (!text) {
 
-        alert(
+        setStatus(
             "请输入表身号或 IMEI"
         );
 
-        return;
-
-    }
-
-
-    const fuzzy =
-        document.getElementById(
-            "fuzzy"
-        );
-
-
-    const limitInput =
-        document.getElementById(
-            "limit"
-        );
-
-
-    const btn =
-        document.getElementById(
-            "searchBtn"
-        );
-
-
-    let limit =
-        Number(
-            limitInput.value
-        ) || 200;
-
-
-    limit =
-        Math.min(
-            Math.max(limit, 1),
-            1000
-        );
-
-
-    limitInput.value =
-        limit;
-
-
-    const token =
-        getToken();
-
-
-    if (!token) {
-
-        sessionStorage.removeItem(
-            "suiwater_token"
-        );
-
-        location.replace(
-            "index.html"
-        );
+        q.focus();
 
         return;
 
     }
+
+
+    searchBtn.disabled = true;
+
+    searchBtn.textContent =
+        "⏳ 查询中...";
 
 
     setStatus(
@@ -678,27 +623,21 @@ async function searchData() {
     );
 
 
-    btn.disabled = true;
-
-    btn.textContent =
-        "⏳ 查询中...";
-
-
     try {
 
 
         const response =
-            await fetch(
-                API_BASE + "/api/search",
+            await apiFetch(
+                "/api/search",
                 {
+
                     method: "POST",
 
                     headers: {
-                        "Content-Type":
-                            "application/json",
 
-                        "Authorization":
-                            "Bearer " + token
+                        "Content-Type":
+                            "application/json"
+
                     },
 
                     body:
@@ -711,7 +650,15 @@ async function searchData() {
                                 fuzzy.checked,
 
                             limit:
-                                limit
+                                Math.min(
+                                    Math.max(
+                                        Number(
+                                            limit.value
+                                        ) || 200,
+                                        1
+                                    ),
+                                    1000
+                                )
 
                         })
 
@@ -719,33 +666,19 @@ async function searchData() {
             );
 
 
-        const data =
-            await response.json()
-                .catch(() => ({}));
+        let data = {};
 
 
-        /*
-         * 登录过期
-         */
+        try {
 
-        if (
-            response.status === 401 ||
-            response.status === 403
-        ) {
+            data =
+                await response.json();
 
-            sessionStorage.removeItem(
-                "suiwater_token"
+        } catch {
+
+            throw new Error(
+                "服务器返回数据异常"
             );
-
-            alert(
-                "登录已过期，请重新登录"
-            );
-
-            location.replace(
-                "index.html"
-            );
-
-            return;
 
         }
 
@@ -757,50 +690,47 @@ async function searchData() {
 
             throw new Error(
                 data.message ||
-                ("HTTP " +
-                    response.status)
+                ("HTTP " + response.status)
             );
 
         }
 
 
         rows =
-            data.results || [];
+            Array.isArray(
+                data.results
+            )
+                ? data.results
+                : [];
 
 
-        document.getElementById(
-            "t"
-        ).textContent =
+        /*
+         * 统计
+         */
+
+        document
+            .getElementById("t")
+            .textContent =
             data.total ??
             rows.length;
 
 
-        document.getElementById(
-            "f"
-        ).textContent =
+        document
+            .getElementById("f")
+            .textContent =
             data.found ??
             rows.filter(
-                x =>
-                    x.status ===
-                    "已找到"
+                x => x.status === "已找到"
             ).length;
 
 
-        document.getElementById(
-            "n"
-        ).textContent =
+        document
+            .getElementById("n")
+            .textContent =
             data.not_found ??
-            Math.max(
-                0,
-                (
-                    data.total ??
-                    0
-                ) -
-                (
-                    data.found ??
-                    0
-                )
-            );
+            rows.filter(
+                x => x.status !== "已找到"
+            ).length;
 
 
         render();
@@ -813,26 +743,41 @@ async function searchData() {
         );
 
 
-    } catch (error) {
+    } catch (e) {
 
-        console.error(error);
 
-        setStatus(
-            "查询失败：" +
-            error.message
+        console.error(
+            "查询错误：",
+            e
         );
+
+
+        if (
+            e.message !==
+            "未登录或登录已过期"
+        ) {
+
+            setStatus(
+                "查询失败：" +
+                e.message
+            );
+
+        }
 
 
     } finally {
 
-        btn.disabled = false;
 
-        btn.textContent =
+        searchBtn.disabled =
+            false;
+
+        searchBtn.textContent =
             "🔍 查询";
 
     }
 
 }
+
 
 
 /* =========================================================
@@ -842,21 +787,10 @@ async function searchData() {
 function render() {
 
 
-    const box =
-        document.getElementById(
-            "r"
-        );
-
-
-    const info =
-        document.getElementById(
-            "resultInfo"
-        );
-
-
     if (!rows.length) {
 
-        box.innerHTML = `
+
+        resultBox.innerHTML = `
 
             <div class="empty">
 
@@ -873,13 +807,14 @@ function render() {
         `;
 
 
-        info.textContent =
+        resultInfo.textContent =
             "暂无数据";
 
 
         return;
 
     }
+
 
 
     let html = `
@@ -890,17 +825,29 @@ function render() {
 
                 <tr>
 
-                    <th>序号</th>
+                    <th>
+                        序号
+                    </th>
 
-                    <th>查询类型</th>
+                    <th>
+                        查询类型
+                    </th>
 
-                    <th>表身号</th>
+                    <th>
+                        表身号
+                    </th>
 
-                    <th>IMEI</th>
+                    <th>
+                        IMEI
+                    </th>
 
-                    <th>厂家归属</th>
+                    <th>
+                        厂家归属
+                    </th>
 
-                    <th>状态</th>
+                    <th>
+                        状态
+                    </th>
 
                 </tr>
 
@@ -911,39 +858,40 @@ function render() {
     `;
 
 
+
     rows.forEach(
         (x, i) => {
 
 
             const queryType =
                 x.query_type ??
-                x["查询类型"] ??
                 "";
 
 
             const meterNo =
                 x.meter_no ??
-                x["表身号"] ??
                 "";
 
 
             const imei =
                 x.imei ??
-                x["IMEI"] ??
                 "";
 
 
             const owner =
                 x.owner ??
-                x.factory ??
-                x["厂家归属"] ??
                 "-";
 
 
-            const status =
+            const itemStatus =
                 x.status ??
-                x["状态"] ??
-                "";
+                "未找到";
+
+
+            const statusClass =
+                itemStatus === "已找到"
+                    ? "ok"
+                    : "no";
 
 
             html += `
@@ -970,17 +918,10 @@ function render() {
                         ${esc(owner)}
                     </td>
 
-                    <td class="${
-                        status === "已找到"
-                            ? "ok"
-                            : "no"
-                    }">
-
-                        ${esc(
-                            status ||
-                            "未找到"
-                        )}
-
+                    <td
+                        class="${statusClass}"
+                    >
+                        ${esc(itemStatus)}
                     </td>
 
                 </tr>
@@ -989,6 +930,7 @@ function render() {
 
         }
     );
+
 
 
     html += `
@@ -1000,16 +942,17 @@ function render() {
     `;
 
 
-    box.innerHTML =
+    resultBox.innerHTML =
         html;
 
 
-    info.textContent =
+    resultInfo.textContent =
         "共 " +
         rows.length +
         " 条";
 
 }
+
 
 
 /* =========================================================
@@ -1019,32 +962,28 @@ function render() {
 function clearAll() {
 
 
-    document.getElementById(
-        "q"
-    ).value = "";
+    q.value = "";
 
 
     rows = [];
 
 
-    document.getElementById(
-        "t"
-    ).textContent = "0";
+    document
+        .getElementById("t")
+        .textContent = "0";
 
 
-    document.getElementById(
-        "f"
-    ).textContent = "0";
+    document
+        .getElementById("f")
+        .textContent = "0";
 
 
-    document.getElementById(
-        "n"
-    ).textContent = "0";
+    document
+        .getElementById("n")
+        .textContent = "0";
 
 
-    document.getElementById(
-        "r"
-    ).innerHTML = `
+    resultBox.innerHTML = `
 
         <div class="empty">
 
@@ -1061,9 +1000,7 @@ function clearAll() {
     `;
 
 
-    document.getElementById(
-        "resultInfo"
-    ).textContent =
+    resultInfo.textContent =
         "暂无数据";
 
 
@@ -1072,6 +1009,7 @@ function clearAll() {
     );
 
 }
+
 
 
 /* =========================================================
@@ -1083,7 +1021,7 @@ async function copyResults() {
 
     if (!rows.length) {
 
-        alert(
+        setStatus(
             "没有查询结果"
         );
 
@@ -1096,72 +1034,48 @@ async function copyResults() {
         "序号\t查询类型\t表身号\tIMEI\t厂家归属\t状态";
 
 
-    const textRows =
-        rows.map(
-            (x, i) => {
+    const text =
+        [
 
+            header,
 
-                const queryType =
-                    x.query_type ??
-                    x["查询类型"] ??
-                    "";
+            ...rows.map(
+                (x, i) => {
 
+                    return [
 
-                const meterNo =
-                    x.meter_no ??
-                    x["表身号"] ??
-                    "";
+                        i + 1,
 
+                        x.query_type ??
+                            "",
 
-                const imei =
-                    x.imei ??
-                    x["IMEI"] ??
-                    "";
+                        x.meter_no ??
+                            "",
 
+                        x.imei ??
+                            "",
 
-                const owner =
-                    x.owner ??
-                    x.factory ??
-                    x["厂家归属"] ??
-                    "";
+                        x.owner ??
+                            "",
 
+                        x.status ??
+                            ""
 
-                const status =
-                    x.status ??
-                    x["状态"] ??
-                    "";
+                    ].join("\t");
 
+                }
+            )
 
-                return [
+        ].join("\n");
 
-                    i + 1,
-
-                    queryType,
-
-                    meterNo,
-
-                    imei,
-
-                    owner,
-
-                    status
-
-                ].join("\t");
-
-            }
-        );
 
 
     try {
 
+
         await navigator
             .clipboard
-            .writeText(
-                [
-                    header,
-                    ...textRows
-                ].join("\n")
-            );
+            .writeText(text);
 
 
         setStatus(
@@ -1169,17 +1083,20 @@ async function copyResults() {
         );
 
 
-    } catch (error) {
+    } catch (e) {
 
-        console.error(error);
 
-        alert(
+        console.error(e);
+
+
+        setStatus(
             "复制失败，请检查浏览器剪贴板权限"
         );
 
     }
 
 }
+
 
 
 /* =========================================================
@@ -1191,7 +1108,7 @@ async function exportExcel() {
 
     if (!rows.length) {
 
-        alert(
+        setStatus(
             "没有可导出的数据"
         );
 
@@ -1200,34 +1117,11 @@ async function exportExcel() {
     }
 
 
-    const token =
-        getToken();
+    exportBtn.disabled =
+        true;
 
 
-    if (!token) {
-
-        sessionStorage.removeItem(
-            "suiwater_token"
-        );
-
-        location.replace(
-            "index.html"
-        );
-
-        return;
-
-    }
-
-
-    const btn =
-        document.getElementById(
-            "exportBtn"
-        );
-
-
-    btn.disabled = true;
-
-    btn.textContent =
+    exportBtn.textContent =
         "⏳ 导出中...";
 
 
@@ -1241,8 +1135,7 @@ async function exportExcel() {
 
 
         const response =
-            await fetch(
-                API_BASE +
+            await apiFetch(
                 "/api/export",
                 {
 
@@ -1251,49 +1144,34 @@ async function exportExcel() {
                     headers: {
 
                         "Content-Type":
-                            "application/json",
-
-                        "Authorization":
-                            "Bearer " + token
+                            "application/json"
 
                     },
 
                     body:
                         JSON.stringify({
-                            results: rows
+
+                            results:
+                                rows
+
                         })
 
                 }
             );
 
 
-        if (
-            response.status === 401 ||
-            response.status === 403
-        ) {
-
-            sessionStorage.removeItem(
-                "suiwater_token"
-            );
-
-            alert(
-                "登录已过期，请重新登录"
-            );
-
-            location.replace(
-                "index.html"
-            );
-
-            return;
-
-        }
-
-
         if (!response.ok) {
 
-            const data =
-                await response.json()
-                    .catch(() => ({}));
+
+            let data = {};
+
+
+            try {
+
+                data =
+                    await response.json();
+
+            } catch {}
 
 
             throw new Error(
@@ -1302,6 +1180,7 @@ async function exportExcel() {
             );
 
         }
+
 
 
         const blob =
@@ -1341,11 +1220,9 @@ async function exportExcel() {
 
         setTimeout(
             () => {
-
                 URL.revokeObjectURL(
                     url
                 );
-
             },
             1000
         );
@@ -1356,21 +1233,33 @@ async function exportExcel() {
         );
 
 
-    } catch (error) {
+    } catch (e) {
 
-        console.error(error);
 
-        setStatus(
-            "导出失败：" +
-            error.message
-        );
+        console.error(e);
+
+
+        if (
+            e.message !==
+            "未登录或登录已过期"
+        ) {
+
+            setStatus(
+                "导出失败：" +
+                e.message
+            );
+
+        }
 
 
     } finally {
 
-        btn.disabled = false;
 
-        btn.textContent =
+        exportBtn.disabled =
+            false;
+
+
+        exportBtn.textContent =
             "导出 Excel";
 
     }
@@ -1378,75 +1267,247 @@ async function exportExcel() {
 }
 
 
+
 /* =========================================================
    退出登录
 ========================================================= */
 
-document
-    .getElementById("logoutBtn")
-    .addEventListener(
-        "click",
-        function () {
+function logout() {
 
-            sessionStorage.removeItem(
-                "suiwater_token"
+
+    sessionStorage.removeItem(
+        "suiwater_token"
+    );
+
+
+    location.replace(
+        "index.html"
+    );
+
+}
+
+
+
+/* =========================================================
+   API 健康检查
+========================================================= */
+
+async function checkAPI() {
+
+
+    try {
+
+
+        /*
+         * health 接口不要求登录
+         */
+
+        const response =
+            await fetch(
+                API_BASE +
+                "/api/health",
+                {
+                    method: "GET"
+                }
             );
 
 
-            location.replace(
-                "index.html"
+        let data = {};
+
+
+        try {
+
+            data =
+                await response.json();
+
+        } catch {}
+
+
+        const serverStatus =
+            document.getElementById(
+                "serverStatus"
+            );
+
+
+        const serverDot =
+            document.getElementById(
+                "serverDot"
+            );
+
+
+        if (
+            response.ok &&
+            data.success
+        ) {
+
+
+            serverStatus.textContent =
+                "API 服务正常";
+
+
+            serverDot.style.background =
+                "#22c55e";
+
+
+        } else {
+
+
+            serverStatus.textContent =
+                "API 服务异常";
+
+
+            serverDot.style.background =
+                "#ef4444";
+
+        }
+
+
+    } catch (e) {
+
+
+        console.error(
+            "API 健康检查失败：",
+            e
+        );
+
+
+        const serverStatus =
+            document.getElementById(
+                "serverStatus"
+            );
+
+
+        const serverDot =
+            document.getElementById(
+                "serverDot"
+            );
+
+
+        serverStatus.textContent =
+            "API 无法连接";
+
+
+        serverDot.style.background =
+            "#ef4444";
+
+    }
+
+}
+
+
+
+/* =========================================================
+   页面打开时检查登录状态
+========================================================= */
+
+async function checkLogin() {
+
+
+    try {
+
+
+        const response =
+            await apiFetch(
+                "/api/auth/check",
+                {
+                    method: "GET"
+                }
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "登录状态无效"
             );
 
         }
-    );
+
+
+    } catch (e) {
+
+
+        console.error(
+            "登录检查失败：",
+            e
+        );
+
+    }
+
+}
+
 
 
 /* =========================================================
    Ctrl + Enter 查询
 ========================================================= */
 
-document
-    .getElementById("q")
-    .addEventListener(
-        "keydown",
-        function (event) {
+q.addEventListener(
+    "keydown",
+    function(e) {
 
-            if (
-                event.ctrlKey &&
-                event.key === "Enter"
-            ) {
+        if (
+            e.ctrlKey &&
+            e.key === "Enter"
+        ) {
 
-                event.preventDefault();
+            e.preventDefault();
 
-                searchData();
-
-            }
+            searchData();
 
         }
-    );
+
+    }
+);
+
 
 
 /* =========================================================
-   页面初始化
+   按钮事件
 ========================================================= */
 
-(async function init() {
-
-    const logged =
-        await checkLogin();
-
-
-    if (!logged) {
-        return;
-    }
+searchBtn.addEventListener(
+    "click",
+    searchData
+);
 
 
-    checkAPI();
+clearBtn.addEventListener(
+    "click",
+    clearAll
+);
 
-})();
+
+copyBtn.addEventListener(
+    "click",
+    copyResults
+);
+
+
+exportBtn.addEventListener(
+    "click",
+    exportExcel
+);
+
+
+logoutBtn.addEventListener(
+    "click",
+    logout
+);
+
+
+
+/* =========================================================
+   初始化
+========================================================= */
+
+checkAPI();
+
+checkLogin();
 
 </script>
 
 
 </body>
+
 </html>

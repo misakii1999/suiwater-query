@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>穗水表身号查询系统</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="card header">
+    <div>
+      <h1>穗水表身号查询系统</h1>
+      <div class="sub">表身号 / IMEI 统一查询 · 精确 · 模糊 · 批量</div>
+    </div>
+    <button class="logout" id="logoutBtn">退出登录</button>
+  </div>
+
+  <div class="card">
+    <h3>统一查询</h3>
+
+    <textarea id="q" placeholder="请输入表身号或 IMEI
+
+支持 Excel 一列直接粘贴；多个号码可换行、空格、逗号、分号分隔。"></textarea>
+
+    <div class="tip">
+      精确查询自动判断表身号或 IMEI；开启模糊查询后同时搜索两个字段。
+    </div>
+
+    <div class="opts">
+      <label>
+        <input type="checkbox" id="fuzzy">
+        开启模糊查询
+      </label>
+
+      <span>
+        最多返回
+        <input class="limit" id="limit" type="number" min="1" max="1000" value="200">
+        条
+      </span>
+    </div>
+
+    <div class="actions">
+      <button class="p" id="searchBtn">🔍 查询</button>
+      <button class="secondary" id="clearBtn">清空</button>
+      <button class="secondary" id="copyBtn">复制结果</button>
+      <button class="s" id="exportBtn">导出 Excel</button>
+      <span class="status" id="status">就绪</span>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-title">查询结果</div>
+      <div class="num" id="t">0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-title">查询成功</div>
+      <div class="num" id="f">0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-title">未找到</div>
+      <div class="num" id="n">0</div>
+    </div>
+  </div>
+
+  <div class="card result-card">
+    <h3>查询结果</h3>
+    <div class="scroll" id="r">
+      <div class="empty">暂无查询结果</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_BASE = "https://sg.oixvideos.top";
+let rows = [];
+
+const $ = id => document.getElementById(id);
+
+function token() {
+  return sessionStorage.getItem("suiwater_token") || "";
+}
+
+function authHeaders(json) {
+  const h = {
+    "Authorization": "Bearer " + token()
+  };
+
+  if (json) {
+    h["Content-Type"] = "application/json";
+  }
+
+  return h;
+}
+
+async function checkLogin() {
+  if (!token()) {
+    location.replace("index.html");
+    return false;
+  }
+
+  try {
+    const x = await fetch(
+      API_BASE + "/api/auth/check",
+      {
+        headers: authHeaders(false)
+      }
+    );
+
+    if (!x.ok) {
+      sessionStorage.removeItem("suiwater_token");
+      location.replace("index.html");
+      return false;
+    }
+
+    return true;
+  } catch (e) {
+    $("status").textContent = "无法连接服务器";
+    return false;
+  }
+}
+
+const esc = x => {
+  const d = document.createElement("div");
+  d.textContent = x ?? "";
+  return d.innerHTML;
+};
+
+async function searchData() {
+  if (!(await checkLogin())) return;
+
+  const text = $("q").value.trim();
+
+  if (!text) {
+    alert("请输入表身号或 IMEI");
+    return;
+  }
+
+  const btn = $("searchBtn");
+
+  $("status").textContent = "正在查询，请稍候...";
+  btn.disabled = true;
+  btn.textContent = "⏳ 查询中...";
+
+  try {
+    const x = await fetch(
+      API_BASE + "/api/search",
+      {
+        method: "POST",
+        headers: authHeaders(true),
+        body: JSON.stringify({
+          query: text,
+          fuzzy: $("fuzzy").checked,
+          limit: Math.min(
+            Math.max(Number($("limit").value) || 200, 1),
+            1000
+          )
+        })
+      }
+    );
+
+    const d = await x.json();
+
+    if (x.status === 401) {
+      sessionStorage.removeItem("suiwater_token");
+      location.replace("index.html");
+      return;
+    }
+
+    if (!x.ok || !d.success) {
+      throw Error(d.message || ("HTTP " + x.status));
+    }
+
+    rows = d.results || [];
+
+    $("t").textContent = d.total || 0;
+    $("f").textContent = d.found || 0;
+    $("n").textContent = d.not_found || 0;
+
+    render();
+
+    $("status").textContent =
+      "查询完成，共 " + rows.length + " 条";
+
+  } catch (e) {
+    $("status").textContent = "查询失败：" + e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "🔍 查询";
+  }
+}
+
+function render() {
+  if (!rows.length) {
+    $("r").innerHTML =
+      '<div class="empty">暂无查询结果</div>';
+    return;
+  }
+
+  let h =
+    "<table><thead><tr>" +
+    "<th>序号</th>" +
+    "<th>查询类型</th>" +
+    "<th>表身号</th>" +
+    "<th>IMEI</th>" +
+    "<th>厂家归属</th>" +
+    "<th>状态</th>" +
+    "</tr></thead><tbody>";
+
+  rows.forEach((x, i) => {
+    h += `<tr>
+      <td>${i + 1}</td>
+      <td>${esc(x.query_type)}</td>
+      <td>${esc(x.meter_no)}</td>
+      <td>${esc(x.imei)}</td>
+      <td>${esc(x.owner || "-")}</td>
+      <td class="${x.status === "已找到" ? "ok" : "no"}">${esc(x.status)}</td>
+    </tr>`;
+  });
+
+  $("r").innerHTML = h + "</tbody></table>";
+}
+
+function clearAll() {
+  $("q").value = "";
+  rows = [];
+
+  $("t").textContent = "0";
+  $("f").textContent = "0";
+  $("n").textContent = "0";
+
+  $("r").innerHTML =
+    '<div class="empty">暂无查询结果</div>';
+
+  $("status").textContent = "就绪";
+}
+
+async function copyResults() {
+  if (!rows.length) {
+    alert("没有查询结果");
+    return;
+  }
+
+  const text = [
+    "序号\t查询类型\t表身号\tIMEI\t厂家归属\t状态",
+    ...rows.map((x, i) =>
+      `${i + 1}\t${x.query_type || ""}\t${x.meter_no || ""}\t${x.imei || ""}\t${x.owner || ""}\t${x.status || ""}`
+    )
+  ].join("\n");
+
+  try {
+    await navigator.clipboard.writeText(text);
+    $("status").textContent = "结果已复制";
+  } catch (e) {
+    alert("复制失败，请检查浏览器剪贴板权限");
+  }
+}
+
+async function exportExcel() {
+  if (!rows.length) {
+    alert("没有可导出的数据");
+    return;
+  }
+
+  if (!(await checkLogin())) return;
+
+  const btn = $("exportBtn");
+
+  btn.disabled = true;
+  btn.textContent = "⏳ 导出中...";
+
+  try {
+    const x = await fetch(
+      API_BASE + "/api/export",
+      {
+        method: "POST",
+        headers: authHeaders(true),
+        body: JSON.stringify({
+          results: rows
+        })
+      }
+    );
+
+    if (x.status === 401) {
+      sessionStorage.removeItem("suiwater_token");
+      location.replace("index.html");
+      return;
+    }
+
+    if (!x.ok) {
+      let msg = "导出失败";
+
+      try {
+        const d = await x.json();
+        msg = d.message || msg;
+      } catch (_) {}
+
+      throw Error(msg);
+    }
+
+    const b = await x.blob();
+    const u = URL.createObjectURL(b);
+    const a = document.createElement("a");
+
+    a.href = u;
+    a.download = "穗水表身号查询结果.xlsx";
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(u);
+
+    $("status").textContent = "Excel 导出完成";
+
+  } catch (e) {
+    alert(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "导出 Excel";
+  }
+}
+
+$("searchBtn").addEventListener("click", searchData);
+$("clearBtn").addEventListener("click", clearAll);
+$("copyBtn").addEventListener("click", copyResults);
+$("exportBtn").addEventListener("click", exportExcel);
+
+$("logoutBtn").addEventListener("click", () => {
+  sessionStorage.removeItem("suiwater_token");
+  rows = [];
+  location.replace("index.html");
+});
+
+$("q").addEventListener("keydown", e => {
+  if (e.ctrlKey && e.key === "Enter") {
+    e.preventDefault();
+    searchData();
+  }
+});
+
+checkLogin();
+</script>
+</body>
+</html>

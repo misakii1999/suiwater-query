@@ -1060,63 +1060,133 @@ td{
    API 配置
 ========================================================= */
 
-const API_BASE =
-    "https://sg.oixvideos.top";
-
-const API_KEY =
-    "SuiWater-8925-02147039-89";
+const API_BASE = "https://sg.oixvideos.top";
 
 
-/* 当前结果 */
+/* =========================================================
+   登录 Token
+========================================================= */
 
-let rows = [];
+function getToken() {
+    return sessionStorage.getItem("suiwater_token");
+}
+
+
+/* =========================================================
+   检查登录
+========================================================= */
+
+async function checkLogin() {
+
+    const token = getToken();
+
+    if (!token) {
+        window.location.replace("index.html");
+        return false;
+    }
+
+    try {
+
+        const response = await fetch(
+            API_BASE + "/api/auth/check",
+            {
+                method: "GET",
+                headers: {
+                    "Authorization": "Bearer " + token
+                }
+            }
+        );
+
+        if (!response.ok) {
+
+            sessionStorage.removeItem("suiwater_token");
+
+            window.location.replace("index.html");
+
+            return false;
+        }
+
+        return true;
+
+    } catch (error) {
+
+        console.error("登录检查失败:", error);
+
+        return true;
+    }
+}
+
+
+/* =========================================================
+   元素
+========================================================= */
+
+const queryInput =
+    document.getElementById("queryInput");
+
+const fuzzy =
+    document.getElementById("fuzzy");
+
+const limit =
+    document.getElementById("limit");
+
+const queryBtn =
+    document.getElementById("queryBtn");
+
+const clearBtn =
+    document.getElementById("clearBtn");
+
+const copyBtn =
+    document.getElementById("copyBtn");
+
+const exportBtn =
+    document.getElementById("exportBtn");
+
+const queryStatus =
+    document.getElementById("queryStatus");
+
+const queryCount =
+    document.getElementById("queryCount");
+
+const matchCount =
+    document.getElementById("matchCount");
+
+const noMatchCount =
+    document.getElementById("noMatchCount");
+
+const resultBody =
+    document.getElementById("resultBody");
+
+const logoutBtn =
+    document.getElementById("logoutBtn");
+
+
+/* =========================================================
+   当前查询结果
+========================================================= */
+
+let currentResults = [];
 
 
 /* =========================================================
    HTML 转义
 ========================================================= */
 
-const esc = x => {
+function escapeHtml(value) {
 
-    const d =
-        document.createElement("div");
-
-    d.textContent =
-        x ?? "";
-
-    return d.innerHTML;
-};
-
-
-/* =========================================================
-   状态
-========================================================= */
-
-function setStatus(text, loading=false){
-
-    const status =
-        document.getElementById("status");
-
-    const icon =
-        document.getElementById("statusIcon");
-
-
-    status.textContent =
-        text;
-
-
-    if(loading){
-
-        icon.style.background =
-            "#f59e0b";
-
-    }else{
-
-        icon.style.background =
-            "#22c55e";
-
+    if (
+        value === null ||
+        value === undefined
+    ) {
+        return "";
     }
 
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
 
@@ -1124,352 +1194,283 @@ function setStatus(text, loading=false){
    查询
 ========================================================= */
 
-async function searchData(){
+queryBtn.addEventListener(
+    "click",
+    async function () {
 
-    const text =
-        document.getElementById("q")
-        .value
-        .trim();
+        const text =
+            queryInput.value.trim();
 
+        if (!text) {
 
-    if(!text){
+            queryStatus.textContent =
+                "请输入表身号或 IMEI";
 
-        setStatus(
-            "请输入表身号或 IMEI"
-        );
-
-        return;
-    }
+            return;
+        }
 
 
-    const fuzzy =
-        document.getElementById("fuzzy");
+        const token = getToken();
+
+        if (!token) {
+
+            window.location.replace("index.html");
+
+            return;
+        }
 
 
-    const limitInput =
-        document.getElementById("limit");
+        queryStatus.textContent =
+            "正在查询...";
+
+        queryBtn.disabled = true;
 
 
-    const btn =
-        document.getElementById("searchBtn");
+        try {
 
+            /*
+             * 使用你原来的 Flask API
+             * 正确接口：
+             *
+             * POST /api/search
+             *
+             * 认证：
+             *
+             * Authorization: Bearer token
+             */
 
-    let limit =
-        Number(limitInput.value);
+            const response =
+                await fetch(
+                    API_BASE + "/api/search",
+                    {
+                        method: "POST",
 
+                        headers: {
+                            "Content-Type":
+                                "application/json",
 
-    if(!Number.isFinite(limit)){
+                            "Authorization":
+                                "Bearer " + token
+                        },
 
-        limit = 200;
+                        body: JSON.stringify({
 
-    }
-
-
-    limit =
-        Math.min(
-            Math.max(limit,1),
-            1000
-        );
-
-
-    limitInput.value =
-        limit;
-
-
-    setStatus(
-        "正在查询，请稍候...",
-        true
-    );
-
-
-    btn.disabled =
-        true;
-
-
-    btn.textContent =
-        "⏳ 查询中...";
-
-
-    try{
-
-
-        const response =
-            await fetch(
-
-                API_BASE +
-                "/api/search",
-
-                {
-
-                    method:"POST",
-
-                    headers:{
-
-                        "Content-Type":
-                            "application/json",
-
-                        "X-API-Key":
-                            API_KEY
-
-                    },
-
-                    body:
-                        JSON.stringify({
-
-                            query:text,
+                            query: text,
 
                             fuzzy:
                                 fuzzy.checked,
 
-                            limit:limit
-
+                            limit:
+                                Math.min(
+                                    Math.max(
+                                        Number(limit.value) || 200,
+                                        1
+                                    ),
+                                    1000
+                                )
                         })
-
-                }
-
-            );
+                    }
+                );
 
 
-        let data = null;
-
-
-        try{
-
-            data =
+            const data =
                 await response.json();
 
-        }catch(e){
 
-            throw new Error(
-                "服务器返回的数据格式错误"
+            /* 登录过期 */
+
+            if (
+                response.status === 401 ||
+                response.status === 403
+            ) {
+
+                sessionStorage.removeItem(
+                    "suiwater_token"
+                );
+
+                alert(
+                    "登录已过期，请重新登录"
+                );
+
+                window.location.replace(
+                    "index.html"
+                );
+
+                return;
+            }
+
+
+            if (
+                !response.ok ||
+                !data.success
+            ) {
+
+                throw new Error(
+                    data.message ||
+                    ("HTTP " + response.status)
+                );
+            }
+
+
+            /* 保存结果 */
+
+            currentResults =
+                data.results || [];
+
+
+            /* 统计 */
+
+            queryCount.textContent =
+                data.total || 0;
+
+            matchCount.textContent =
+                data.found || 0;
+
+            noMatchCount.textContent =
+                data.not_found || 0;
+
+
+            /* 显示结果 */
+
+            renderResults(
+                currentResults
             );
 
-        }
+
+            queryStatus.textContent =
+                `查询完成，共返回 ${currentResults.length} 条`;
 
 
-        if(
-            !response.ok ||
-            !data ||
-            !data.success
-        ){
+        } catch (error) {
 
-            throw new Error(
-
-                data &&
-                data.message
-
-                    ? data.message
-
-                    : "HTTP " +
-                      response.status
-
+            console.error(
+                "查询错误:",
+                error
             );
 
+            queryStatus.textContent =
+                "查询失败：" +
+                error.message;
+
+
+        } finally {
+
+            queryBtn.disabled = false;
+
         }
-
-
-        rows =
-            Array.isArray(data.results)
-                ? data.results
-                : [];
-
-
-        document.getElementById("t")
-            .textContent =
-            Number(data.total || 0)
-                .toLocaleString();
-
-
-        document.getElementById("f")
-            .textContent =
-            Number(data.found || 0)
-                .toLocaleString();
-
-
-        document.getElementById("n")
-            .textContent =
-            Number(data.not_found || 0)
-                .toLocaleString();
-
-
-        render();
-
-
-        setStatus(
-
-            "查询完成，共 " +
-            rows.length +
-            " 条"
-
-        );
-
-
-    }catch(error){
-
-        console.error(
-            "查询错误：",
-            error
-        );
-
-
-        setStatus(
-
-            "查询失败：" +
-            error.message
-
-        );
-
-
-        rows = [];
-
-
-        render();
-
-    }finally{
-
-        btn.disabled =
-            false;
-
-        btn.textContent =
-            "🔍 查询";
 
     }
-
-}
+);
 
 
 /* =========================================================
    渲染结果
 ========================================================= */
 
-function render(){
+function renderResults(results) {
 
-    const box =
-        document.getElementById("r");
-
-
-    const info =
-        document.getElementById("resultInfo");
+    resultBody.innerHTML = "";
 
 
-    if(!rows.length){
+    if (
+        !results ||
+        results.length === 0
+    ) {
 
-        box.innerHTML = `
-
-            <div class="empty">
-
-                <div class="empty-icon">
-                    🔎
-                </div>
-
-                <div>
-                    暂无查询结果
-                </div>
-
-            </div>
-
+        resultBody.innerHTML = `
+            <tr>
+                <td
+                    colspan="6"
+                    class="empty"
+                >
+                    暂无匹配结果
+                </td>
+            </tr>
         `;
 
-
-        info.textContent =
-            "暂无数据";
-
-
         return;
-
     }
 
 
-    let h = `
+    results.forEach(
+        (row, index) => {
 
-        <table>
-
-            <thead>
-
-                <tr>
-
-                    <th>序号</th>
-
-                    <th>查询类型</th>
-
-                    <th>表身号</th>
-
-                    <th>IMEI</th>
-
-                    <th>厂家归属</th>
-
-                    <th>状态</th>
-
-                </tr>
-
-            </thead>
-
-            <tbody>
-
-    `;
+            const tr =
+                document.createElement("tr");
 
 
-    rows.forEach((x,i)=>{
+            const queryType =
+                row.query_type ??
+                row["查询类型"] ??
+                row.type ??
+                "";
 
 
-        h += `
+            const meter =
+                row.meter_no ??
+                row["表身号"] ??
+                row.meter ??
+                "";
 
-            <tr>
+
+            const imei =
+                row.imei ??
+                row["IMEI"] ??
+                "";
+
+
+            const owner =
+                row.owner ??
+                row["厂家归属"] ??
+                row.factory ??
+                "";
+
+
+            const status =
+                row.status ??
+                row["状态"] ??
+                "";
+
+
+            tr.innerHTML = `
 
                 <td>
-                    ${i + 1}
+                    ${index + 1}
                 </td>
 
                 <td>
-                    ${esc(x.query_type)}
+                    ${escapeHtml(queryType)}
                 </td>
 
                 <td>
-                    ${esc(x.meter_no)}
+                    ${escapeHtml(meter)}
                 </td>
 
                 <td>
-                    ${esc(x.imei)}
+                    ${escapeHtml(imei)}
                 </td>
 
                 <td>
-                    ${esc(x.owner || "-")}
+                    ${escapeHtml(owner || "-")}
                 </td>
 
                 <td
                     class="${
-                        x.status === "已找到"
+                        status === "已找到"
                             ? "ok"
                             : "no"
                     }"
                 >
-                    ${esc(x.status || "未找到")}
+                    ${escapeHtml(status || "未匹配")}
                 </td>
 
-            </tr>
-
-        `;
-
-    });
+            `;
 
 
-    h += `
+            resultBody.appendChild(tr);
 
-            </tbody>
-
-        </table>
-
-    `;
-
-
-    box.innerHTML =
-        h;
-
-
-    info.textContent =
-        "共 " +
-        rows.length +
-        " 条";
+        }
+    );
 
 }
 
@@ -1478,390 +1479,362 @@ function render(){
    清空
 ========================================================= */
 
-function clearAll(){
+clearBtn.addEventListener(
+    "click",
+    function () {
 
-    document.getElementById("q")
-        .value = "";
-
-
-    rows = [];
+        queryInput.value = "";
 
 
-    document.getElementById("t")
-        .textContent = "0";
+        currentResults = [];
 
 
-    document.getElementById("f")
-        .textContent = "0";
+        queryCount.textContent = "0";
+
+        matchCount.textContent = "0";
+
+        noMatchCount.textContent = "0";
 
 
-    document.getElementById("n")
-        .textContent = "0";
+        queryStatus.textContent =
+            "等待查询";
 
 
-    document.getElementById("r")
-        .innerHTML = `
-
-            <div class="empty">
-
-                <div class="empty-icon">
-                    🔎
-                </div>
-
-                <div>
+        resultBody.innerHTML = `
+            <tr>
+                <td
+                    colspan="6"
+                    class="empty"
+                >
                     暂无查询结果
-                </div>
-
-            </div>
-
+                </td>
+            </tr>
         `;
 
-
-    document.getElementById("resultInfo")
-        .textContent =
-        "暂无数据";
-
-
-    setStatus(
-        "就绪"
-    );
-
-}
+    }
+);
 
 
 /* =========================================================
-   复制
+   复制结果
 ========================================================= */
 
-async function copyResults(){
+copyBtn.addEventListener(
+    "click",
+    async function () {
 
-    if(!rows.length){
+        if (
+            !currentResults.length
+        ) {
 
-        setStatus(
-            "没有查询结果"
-        );
+            queryStatus.textContent =
+                "暂无结果可复制";
 
-        return;
+            return;
+        }
+
+
+        const header =
+            "序号\t查询类型\t表身号\tIMEI\t厂家归属\t状态";
+
+
+        const rows =
+            currentResults.map(
+                (row, index) => {
+
+                    const queryType =
+                        row.query_type ??
+                        row["查询类型"] ??
+                        row.type ??
+                        "";
+
+
+                    const meter =
+                        row.meter_no ??
+                        row["表身号"] ??
+                        row.meter ??
+                        "";
+
+
+                    const imei =
+                        row.imei ??
+                        row["IMEI"] ??
+                        "";
+
+
+                    const owner =
+                        row.owner ??
+                        row["厂家归属"] ??
+                        row.factory ??
+                        "";
+
+
+                    const status =
+                        row.status ??
+                        row["状态"] ??
+                        "";
+
+
+                    return [
+
+                        index + 1,
+
+                        queryType,
+
+                        meter,
+
+                        imei,
+
+                        owner,
+
+                        status
+
+                    ].join("\t");
+
+                }
+            );
+
+
+        try {
+
+            await navigator.clipboard.writeText(
+                [
+                    header,
+                    ...rows
+                ].join("\n")
+            );
+
+
+            queryStatus.textContent =
+                "结果已复制";
+
+
+        } catch (error) {
+
+            queryStatus.textContent =
+                "复制失败";
+
+        }
 
     }
-
-
-    const text = [
-
-        "序号\t查询类型\t表身号\tIMEI\t厂家归属\t状态",
-
-        ...rows.map((x,i)=>{
-
-            return [
-
-                i + 1,
-
-                x.query_type || "",
-
-                x.meter_no || "",
-
-                x.imei || "",
-
-                x.owner || "",
-
-                x.status || ""
-
-            ].join("\t");
-
-        })
-
-    ].join("\n");
-
-
-    try{
-
-        await navigator.clipboard
-            .writeText(text);
-
-
-        setStatus(
-            "查询结果已复制到剪贴板"
-        );
-
-
-    }catch(e){
-
-        console.error(e);
-
-        setStatus(
-            "复制失败，请检查浏览器剪贴板权限"
-        );
-
-    }
-
-}
+);
 
 
 /* =========================================================
    导出 Excel
 ========================================================= */
 
-async function exportExcel(){
+exportBtn.addEventListener(
+    "click",
+    async function () {
 
-    if(!rows.length){
+        if (
+            !currentResults.length
+        ) {
 
-        setStatus(
-            "没有可导出的数据"
-        );
+            queryStatus.textContent =
+                "暂无结果可导出";
 
-        return;
-
-    }
-
-
-    const btn =
-        document.getElementById("exportBtn");
-
-
-    btn.disabled =
-        true;
-
-
-    btn.textContent =
-        "⏳ 导出中...";
-
-
-    setStatus(
-        "正在生成 Excel，请稍候...",
-        true
-    );
-
-
-    try{
-
-
-        const response =
-            await fetch(
-
-                API_BASE +
-                "/api/export",
-
-                {
-
-                    method:"POST",
-
-                    headers:{
-
-                        "Content-Type":
-                            "application/json",
-
-                        "X-API-Key":
-                            API_KEY
-
-                    },
-
-                    body:
-                        JSON.stringify({
-
-                            results:rows
-
-                        })
-
-                }
-
-            );
-
-
-        if(!response.ok){
-
-            let data = {};
-
-            try{
-
-                data =
-                    await response.json();
-
-            }catch(e){}
-
-
-            throw new Error(
-
-                data.message ||
-                "导出失败，HTTP " +
-                response.status
-
-            );
-
+            return;
         }
 
 
-        const blob =
-            await response.blob();
+        const token = getToken();
+
+        if (!token) {
+
+            window.location.replace(
+                "index.html"
+            );
+
+            return;
+        }
 
 
-        const url =
-            URL.createObjectURL(blob);
+        exportBtn.disabled = true;
+
+        exportBtn.textContent =
+            "⏳ 导出中...";
 
 
-        const a =
-            document.createElement("a");
+        queryStatus.textContent =
+            "正在生成 Excel，请稍候...";
 
 
-        a.href =
-            url;
+        try {
+
+            const response =
+                await fetch(
+                    API_BASE + "/api/export",
+                    {
+                        method: "POST",
+
+                        headers: {
+
+                            "Content-Type":
+                                "application/json",
+
+                            "Authorization":
+                                "Bearer " + token
+                        },
+
+                        body: JSON.stringify({
+
+                            results:
+                                currentResults
+
+                        })
+                    }
+                );
 
 
-        a.download =
-            "穗水表身号查询结果.xlsx";
+            if (
+                response.status === 401 ||
+                response.status === 403
+            ) {
+
+                sessionStorage.removeItem(
+                    "suiwater_token"
+                );
+
+                alert(
+                    "登录已过期，请重新登录"
+                );
+
+                window.location.replace(
+                    "index.html"
+                );
+
+                return;
+            }
 
 
-        document.body.appendChild(a);
+            if (!response.ok) {
+
+                let data = {};
+
+                try {
+
+                    data =
+                        await response.json();
+
+                } catch (e) {}
+
+                throw new Error(
+                    data.message ||
+                    "导出失败"
+                );
+            }
 
 
-        a.click();
+            const blob =
+                await response.blob();
 
 
-        a.remove();
+            const url =
+                URL.createObjectURL(blob);
 
 
-        setTimeout(()=>{
-
-            URL.revokeObjectURL(url);
-
-        },1000);
+            const a =
+                document.createElement("a");
 
 
-        setStatus(
-            "Excel 导出完成"
-        );
+            a.href = url;
+
+            a.download =
+                "穗水表身号查询结果.xlsx";
 
 
-    }catch(e){
+            document.body.appendChild(a);
 
-        console.error(e);
+            a.click();
 
-
-        setStatus(
-            "导出失败：" +
-            e.message
-        );
+            a.remove();
 
 
-    }finally{
+            setTimeout(
+                () => {
+                    URL.revokeObjectURL(url);
+                },
+                1000
+            );
 
-        btn.disabled =
-            false;
 
-        btn.textContent =
-            "导出 Excel";
+            queryStatus.textContent =
+                "Excel 导出完成";
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            queryStatus.textContent =
+                "导出失败：" +
+                error.message;
+
+
+        } finally {
+
+            exportBtn.disabled = false;
+
+            exportBtn.textContent =
+                "导出 Excel";
+
+        }
 
     }
+);
 
-}
+
+/* =========================================================
+   退出登录
+========================================================= */
+
+logoutBtn.addEventListener(
+    "click",
+    function () {
+
+        sessionStorage.removeItem(
+            "suiwater_token"
+        );
+
+        window.location.replace(
+            "index.html"
+        );
+
+    }
+);
 
 
 /* =========================================================
    Ctrl + Enter 查询
 ========================================================= */
 
-document.getElementById("q")
-.addEventListener(
-
+queryInput.addEventListener(
     "keydown",
+    function (e) {
 
-    e=>{
-
-        if(
+        if (
             e.ctrlKey &&
             e.key === "Enter"
-        ){
+        ) {
 
             e.preventDefault();
 
-            searchData();
+            queryBtn.click();
 
         }
 
     }
-
 );
 
 
 /* =========================================================
-   API 状态
+   页面打开检查登录
 ========================================================= */
 
-async function checkAPI(){
-
-    const status =
-        document.getElementById("apiStatus");
-
-
-    try{
-
-
-        const response =
-            await fetch(
-
-                API_BASE +
-                "/api/health",
-
-                {
-
-                    method:"GET",
-
-                    cache:"no-store"
-
-                }
-
-            );
-
-
-        const data =
-            await response.json();
-
-
-        if(
-            response.ok &&
-            data.success
-        ){
-
-            status.textContent =
-
-                "API 服务正常 · 数据库 " +
-
-                Number(
-                    data.records || 0
-                ).toLocaleString() +
-
-                " 条";
-
-        }else{
-
-            status.textContent =
-                "API 服务异常";
-
-        }
-
-
-    }catch(e){
-
-        console.error(
-            "API health:",
-            e
-        );
-
-
-        status.textContent =
-            "无法连接 API 服务";
-
-    }
-
-}
-
-
-/* =========================================================
-   页面加载
-========================================================= */
-
-checkAPI();
+checkLogin();
 
 </script>
-
 </body>
 </html>

@@ -21,20 +21,25 @@
 
         <div>
             <h1>💧 穗水表身号查询系统</h1>
+
             <div class="sub">
                 水表信息快速查询与数据管理
             </div>
         </div>
 
-        <div>
-            <span class="status">
+        <div class="header-right">
+
+            <span class="api-status">
                 <span class="ok">●</span>
                 API 服务正常
             </span>
 
-            <button class="logout" id="logoutBtn">
+            <button
+                class="logout"
+                id="logoutBtn">
                 退出登录
             </button>
+
         </div>
 
     </div>
@@ -57,63 +62,97 @@
         </div>
 
 
-        <!-- 查询选项 -->
-        <div class="opts">
+        <!-- =========================
+             查询工具栏
+             左：查询选项
+             右：操作按钮
+        ========================== -->
 
-            <label>
-                <input type="checkbox" id="fuzzy">
-                开启模糊查询
-            </label>
+        <div class="query-toolbar">
 
-            <label>
-                最多返回
-                <select id="limit" class="limit">
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                    <option value="200" selected>200</option>
-                </select>
-                条
-            </label>
+            <!-- 左侧 -->
+            <div class="query-options">
 
-        </div>
+                <label>
+                    <input
+                        type="checkbox"
+                        id="fuzzy">
+
+                    开启模糊查询
+                </label>
 
 
-        <!-- 操作按钮 -->
-        <div class="actions">
+                <label>
+                    最多返回
 
-            <button
-                type="button"
-                id="queryBtn"
-                class="p">
-                查询
-            </button>
+                    <select
+                        id="limit"
+                        class="limit">
 
-            <button
-                type="button"
-                id="clearBtn"
-                class="secondary">
-                清空
-            </button>
+                        <option value="50">
+                            50
+                        </option>
 
-            <button
-                type="button"
-                id="copyBtn"
-                class="secondary">
-                复制结果
-            </button>
+                        <option value="100">
+                            100
+                        </option>
 
-            <button
-                type="button"
-                id="exportBtn"
-                class="s">
-                导出 Excel
-            </button>
+                        <option
+                            value="200"
+                            selected>
+                            200
+                        </option>
 
-            <span
-                class="status"
-                id="queryStatus">
-                等待查询
-            </span>
+                    </select>
+
+                    条
+                </label>
+
+            </div>
+
+
+            <!-- 右侧 -->
+            <div class="query-actions">
+
+                <button
+                    type="button"
+                    id="queryBtn"
+                    class="p">
+                    查询
+                </button>
+
+
+                <button
+                    type="button"
+                    id="clearBtn"
+                    class="secondary">
+                    清空
+                </button>
+
+
+                <button
+                    type="button"
+                    id="copyBtn"
+                    class="secondary">
+                    复制结果
+                </button>
+
+
+                <button
+                    type="button"
+                    id="exportBtn"
+                    class="s">
+                    导出 Excel
+                </button>
+
+
+                <span
+                    class="query-status"
+                    id="queryStatus">
+                    等待查询
+                </span>
+
+            </div>
 
         </div>
 
@@ -123,6 +162,7 @@
     <!-- =========================
          统计卡片
     ========================== -->
+
     <div class="stats">
 
         <div class="stat">
@@ -175,6 +215,7 @@
     <!-- =========================
          查询结果
     ========================== -->
+
     <div class="card result-card">
 
         <h3>查询结果</h3>
@@ -196,14 +237,17 @@
 
                 </thead>
 
+
                 <tbody id="resultBody">
 
                     <tr>
+
                         <td
                             colspan="6"
                             class="empty">
                             暂无查询结果
                         </td>
+
                     </tr>
 
                 </tbody>
@@ -214,7 +258,6 @@
 
     </div>
 
-
 </div>
 
 
@@ -224,24 +267,49 @@
    元素
 ========================= */
 
-const queryInput = document.getElementById("queryInput");
-const fuzzy = document.getElementById("fuzzy");
-const limit = document.getElementById("limit");
+const queryInput =
+    document.getElementById("queryInput");
 
-const queryBtn = document.getElementById("queryBtn");
-const clearBtn = document.getElementById("clearBtn");
-const copyBtn = document.getElementById("copyBtn");
-const exportBtn = document.getElementById("exportBtn");
+const fuzzy =
+    document.getElementById("fuzzy");
 
-const queryStatus = document.getElementById("queryStatus");
+const limit =
+    document.getElementById("limit");
 
-const queryCount = document.getElementById("queryCount");
-const matchCount = document.getElementById("matchCount");
-const noMatchCount = document.getElementById("noMatchCount");
 
-const resultBody = document.getElementById("resultBody");
+const queryBtn =
+    document.getElementById("queryBtn");
 
-const logoutBtn = document.getElementById("logoutBtn");
+const clearBtn =
+    document.getElementById("clearBtn");
+
+const copyBtn =
+    document.getElementById("copyBtn");
+
+const exportBtn =
+    document.getElementById("exportBtn");
+
+
+const queryStatus =
+    document.getElementById("queryStatus");
+
+
+const queryCount =
+    document.getElementById("queryCount");
+
+const matchCount =
+    document.getElementById("matchCount");
+
+const noMatchCount =
+    document.getElementById("noMatchCount");
+
+
+const resultBody =
+    document.getElementById("resultBody");
+
+
+const logoutBtn =
+    document.getElementById("logoutBtn");
 
 
 /* =========================
@@ -257,64 +325,66 @@ let currentResults = [];
 
 queryBtn.addEventListener("click", async function () {
 
-    const text = queryInput.value.trim();
+    const text =
+        queryInput.value.trim();
+
 
     if (!text) {
 
-        queryStatus.textContent = "请输入表身号";
+        queryStatus.textContent =
+            "请输入表身号";
 
         return;
     }
 
 
-    const values = text
-        .split(/\r?\n/)
-        .map(v => v.trim())
-        .filter(Boolean);
+    const values =
+        text
+            .split(/\r?\n/)
+            .map(v => v.trim())
+            .filter(Boolean);
 
 
-    queryStatus.textContent = "正在查询...";
+    queryStatus.textContent =
+        "正在查询...";
+
 
     queryBtn.disabled = true;
 
 
     try {
 
-        /*
-         * 注意：
-         * 这里需要使用你原来的 Flask API。
-         *
-         * 当前只是 UI 模板，
-         * 不建议直接覆盖你现有 query.html 中的 API 查询代码。
-         */
+        const response =
+            await fetch("/api/query", {
 
-        const response = await fetch("/api/query", {
+                method: "POST",
 
-            method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
 
-            headers: {
-                "Content-Type": "application/json"
-            },
+                body: JSON.stringify({
 
-            body: JSON.stringify({
+                    values: values,
 
-                values: values,
+                    fuzzy: fuzzy.checked,
 
-                fuzzy: fuzzy.checked,
+                    limit: Number(limit.value)
 
-                limit: Number(limit.value)
+                })
 
-            })
-
-        });
+            });
 
 
         if (!response.ok) {
+
             throw new Error("查询失败");
+
         }
 
 
-        const data = await response.json();
+        const data =
+            await response.json();
 
 
         currentResults =
@@ -323,17 +393,24 @@ queryBtn.addEventListener("click", async function () {
                 : (data.results || []);
 
 
-        renderResults(currentResults);
+        renderResults(
+            currentResults
+        );
 
 
-        queryCount.textContent = values.length;
+        queryCount.textContent =
+            values.length;
 
-        matchCount.textContent = currentResults.length;
+
+        matchCount.textContent =
+            currentResults.length;
+
 
         noMatchCount.textContent =
             Math.max(
                 0,
-                values.length - currentResults.length
+                values.length -
+                currentResults.length
             );
 
 
@@ -383,7 +460,8 @@ function renderResults(results) {
 
     results.forEach((row, index) => {
 
-        const tr = document.createElement("tr");
+        const tr =
+            document.createElement("tr");
 
 
         const queryType =
@@ -420,21 +498,35 @@ function renderResults(results) {
 
         tr.innerHTML = `
 
-            <td>${index + 1}</td>
+            <td>
+                ${index + 1}
+            </td>
 
-            <td>${escapeHtml(queryType)}</td>
+            <td>
+                ${escapeHtml(queryType)}
+            </td>
 
-            <td>${escapeHtml(meter)}</td>
+            <td>
+                ${escapeHtml(meter)}
+            </td>
 
-            <td>${escapeHtml(imei)}</td>
+            <td>
+                ${escapeHtml(imei)}
+            </td>
 
-            <td>${escapeHtml(factory)}</td>
+            <td>
+                ${escapeHtml(factory)}
+            </td>
 
             <td>
                 ${
                     status
-                    ? `<span class="ok">${escapeHtml(status)}</span>`
-                    : `<span class="no">未匹配</span>`
+                    ? `<span class="ok">
+                        ${escapeHtml(status)}
+                       </span>`
+                    : `<span class="no">
+                        未匹配
+                       </span>`
                 }
             </td>
 
@@ -456,6 +548,7 @@ clearBtn.addEventListener("click", function () {
 
     queryInput.value = "";
 
+
     resultBody.innerHTML = `
         <tr>
             <td colspan="6" class="empty">
@@ -464,11 +557,17 @@ clearBtn.addEventListener("click", function () {
         </tr>
     `;
 
+
     queryCount.textContent = "0";
+
     matchCount.textContent = "0";
+
     noMatchCount.textContent = "0";
 
-    queryStatus.textContent = "等待查询";
+
+    queryStatus.textContent =
+        "等待查询";
+
 
     currentResults = [];
 
@@ -483,7 +582,8 @@ copyBtn.addEventListener("click", async function () {
 
     if (!currentResults.length) {
 
-        queryStatus.textContent = "暂无结果可复制";
+        queryStatus.textContent =
+            "暂无结果可复制";
 
         return;
     }
@@ -493,37 +593,40 @@ copyBtn.addEventListener("click", async function () {
         "序号\t查询类型\t表身号\tIMEI\t厂家归属\t状态";
 
 
-    const rows = currentResults.map((row, index) => {
+    const rows =
+        currentResults.map(
+            (row, index) => {
 
-        return [
+                return [
 
-            index + 1,
+                    index + 1,
 
-            row["查询类型"] ??
-            row.query_type ??
-            row.type ??
-            "",
+                    row["查询类型"] ??
+                    row.query_type ??
+                    row.type ??
+                    "",
 
-            row["表身号"] ??
-            row.meter_no ??
-            row.meter ??
-            "",
+                    row["表身号"] ??
+                    row.meter_no ??
+                    row.meter ??
+                    "",
 
-            row["IMEI"] ??
-            row.imei ??
-            "",
+                    row["IMEI"] ??
+                    row.imei ??
+                    "",
 
-            row["厂家归属"] ??
-            row.factory ??
-            "",
+                    row["厂家归属"] ??
+                    row.factory ??
+                    "",
 
-            row["状态"] ??
-            row.status ??
-            ""
+                    row["状态"] ??
+                    row.status ??
+                    ""
 
-        ].join("\t");
+                ].join("\t");
 
-    });
+            }
+        );
 
 
     try {
@@ -532,11 +635,15 @@ copyBtn.addEventListener("click", async function () {
             [header, ...rows].join("\n")
         );
 
-        queryStatus.textContent = "结果已复制";
+
+        queryStatus.textContent =
+            "结果已复制";
+
 
     } catch (error) {
 
-        queryStatus.textContent = "复制失败";
+        queryStatus.textContent =
+            "复制失败";
 
     }
 
@@ -551,18 +658,15 @@ exportBtn.addEventListener("click", function () {
 
     if (!currentResults.length) {
 
-        queryStatus.textContent = "暂无结果可导出";
+        queryStatus.textContent =
+            "暂无结果可导出";
 
         return;
     }
 
 
-    /*
-     * 这里同样应该接入你原来的
-     * Flask Excel 导出接口。
-     */
-
-    window.location.href = "/api/export";
+    window.location.href =
+        "/api/export";
 
 });
 
@@ -573,7 +677,8 @@ exportBtn.addEventListener("click", function () {
 
 logoutBtn.addEventListener("click", function () {
 
-    window.location.href = "/logout";
+    window.location.href =
+        "/logout";
 
 });
 
@@ -584,16 +689,40 @@ logoutBtn.addEventListener("click", function () {
 
 function escapeHtml(value) {
 
-    if (value === null || value === undefined) {
+    if (
+        value === null ||
+        value === undefined
+    ) {
         return "";
     }
 
+
     return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+
+        .replace(
+            /</g,
+            "&lt;"
+        )
+
+        .replace(
+            />/g,
+            "&gt;"
+        )
+
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+
+        .replace(
+            /'/g,
+            "&#039;"
+        );
 
 }
 

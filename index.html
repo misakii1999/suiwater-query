@@ -90,15 +90,14 @@
 <script>
 
 /* =========================================================
-   API
+   API 地址
 ========================================================= */
 
-const API_BASE =
-    "https://sg.oixvideos.top";
+const API_BASE = "https://sg.oixvideos.top";
 
 
 /* =========================================================
-   检查已有登录
+   已登录检查
 ========================================================= */
 
 const oldToken =
@@ -111,6 +110,7 @@ if (oldToken) {
         API_BASE + "/api/auth/check",
         {
             method: "GET",
+
             headers: {
                 "Authorization":
                     "Bearer " + oldToken
@@ -134,9 +134,10 @@ if (oldToken) {
     })
     .catch(() => {
 
-        sessionStorage.removeItem(
-            "suiwater_token"
-        );
+        /*
+         * API 暂时无法连接时，
+         * 不影响登录页面显示。
+         */
 
     });
 
@@ -148,137 +149,161 @@ if (oldToken) {
 ========================================================= */
 
 document
-    .getElementById("loginForm")
-    .addEventListener(
-        "submit",
-        async function (event) {
+.getElementById("loginForm")
+.addEventListener(
+    "submit",
+    async function(e) {
 
-            event.preventDefault();
-
-
-            const username =
-                document
-                    .getElementById("username")
-                    .value
-                    .trim();
+        e.preventDefault();
 
 
-            const password =
-                document
-                    .getElementById("password")
-                    .value;
+        const username =
+            document
+            .getElementById("username")
+            .value
+            .trim();
 
 
-            const error =
-                document
-                    .getElementById("error");
+        const password =
+            document
+            .getElementById("password")
+            .value;
 
 
-            const button =
-                document
-                    .getElementById("loginBtn");
+        const error =
+            document
+            .getElementById("error");
 
 
-            error.textContent = "";
+        const btn =
+            document
+            .getElementById("loginBtn");
 
 
-            if (!username || !password) {
-
-                error.textContent =
-                    "请输入用户名和密码";
-
-                return;
-            }
+        error.textContent = "";
 
 
-            button.disabled = true;
+        if (!username || !password) {
 
-            button.textContent =
-                "⏳ 登录中...";
+            error.textContent =
+                "请输入用户名和密码";
 
+            return;
+        }
+
+
+        btn.disabled = true;
+
+        btn.textContent =
+            "⏳ 登录中...";
+
+
+        try {
+
+            const response =
+                await fetch(
+                    API_BASE + "/api/login",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body:
+                            JSON.stringify({
+                                username:
+                                    username,
+
+                                password:
+                                    password
+                            })
+                    }
+                );
+
+
+            let data = {};
 
             try {
 
-                const response =
-                    await fetch(
-                        API_BASE + "/api/login",
-                        {
-                            method: "POST",
+                data =
+                    await response.json();
 
-                            headers: {
-                                "Content-Type":
-                                    "application/json"
-                            },
+            } catch {
 
-                            body:
-                                JSON.stringify({
-                                    username:
-                                        username,
-                                    password:
-                                        password
-                                })
-                        }
-                    );
-
-
-                const data =
-                    await response.json()
-                        .catch(() => ({}));
-
-
-                if (
-                    !response.ok ||
-                    !data.success
-                ) {
-
-                    throw new Error(
-                        data.message ||
-                        "登录失败"
-                    );
-
-                }
-
-
-                if (!data.token) {
-
-                    throw new Error(
-                        "服务器没有返回登录 Token"
-                    );
-
-                }
-
-
-                sessionStorage.setItem(
-                    "suiwater_token",
-                    data.token
+                throw new Error(
+                    "服务器返回数据异常"
                 );
-
-
-                location.replace(
-                    "query.html"
-                );
-
-
-            } catch (e) {
-
-                console.error(e);
-
-                error.textContent =
-                    e.message ||
-                    "登录失败";
-
-
-            } finally {
-
-                button.disabled = false;
-
-                button.textContent =
-                    "登录";
 
             }
 
+
+            if (
+                !response.ok ||
+                !data.success
+            ) {
+
+                throw new Error(
+                    data.message ||
+                    "用户名或密码错误"
+                );
+
+            }
+
+
+            if (!data.token) {
+
+                throw new Error(
+                    "登录成功，但服务器没有返回 Token"
+                );
+
+            }
+
+
+            /*
+             * 保存登录 Token
+             */
+
+            sessionStorage.setItem(
+                "suiwater_token",
+                data.token
+            );
+
+
+            /*
+             * 跳转查询页面
+             */
+
+            location.replace(
+                "query.html"
+            );
+
+
+        } catch (e) {
+
+            console.error(
+                "登录错误：",
+                e
+            );
+
+
+            error.textContent =
+                e.message ||
+                "登录失败，请检查 API 服务";
+
+
+        } finally {
+
+            btn.disabled = false;
+
+            btn.textContent =
+                "登录";
+
         }
-    );
+
+    }
+);
 
 </script>
 

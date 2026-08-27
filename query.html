@@ -20,29 +20,55 @@
     <style>
 
         /* =====================================================
-           顶部右侧状态
-           不修改原 style.css，只在本页面补充
+           顶部右侧区域
         ====================================================== */
 
         .header-right{
             display:flex;
             align-items:center;
             justify-content:flex-end;
-            gap:10px;
+            gap:12px;
         }
+
+
+        /* =====================================================
+           API 状态
+        ====================================================== */
 
         .server-status{
             display:flex;
             align-items:center;
             gap:8px;
+            white-space:nowrap;
         }
 
-        .db-status{
-            margin-left:4px;
-            white-space:nowrap;
-            color:#64748b;
+
+        /* API 服务正常文字 */
+
+        #serverStatus{
+            color:#16a34a;
             font-size:13px;
+            font-weight:500;
+            white-space:nowrap;
         }
+
+
+        /* =====================================================
+           数据库数量
+        ====================================================== */
+
+        .db-status{
+            margin-left:2px;
+            white-space:nowrap;
+            color:#16a34a;
+            font-size:13px;
+            font-weight:500;
+        }
+
+
+        /* =====================================================
+           退出登录
+        ====================================================== */
 
         .logout{
             height:36px;
@@ -57,9 +83,15 @@
             white-space:nowrap;
         }
 
+
         .logout:hover{
             background:#f8fafc;
             transform:translateY(-1px);
+        }
+
+
+        .logout:active{
+            transform:translateY(0);
         }
 
 
@@ -77,6 +109,7 @@
                 width:100%;
                 justify-content:flex-start;
                 flex-wrap:wrap;
+                gap:8px 10px;
             }
 
             .server-status{
@@ -84,6 +117,7 @@
             }
 
         }
+
 
     </style>
 
@@ -103,7 +137,9 @@
     <div class="card header">
 
 
-        <!-- 左侧 Logo + 标题 -->
+        <!-- =================================================
+             左侧 Logo + 标题
+        ================================================== -->
 
         <div class="logo-area">
 
@@ -118,6 +154,7 @@
                     穗水表身号查询系统
                 </h1>
 
+
                 <div class="sub">
                     表身号 / IMEI 统一查询 · 精确 · 模糊 · 批量
                 </div>
@@ -127,22 +164,30 @@
         </div>
 
 
+
         <!-- =================================================
-             右侧
+             右侧状态
         ================================================== -->
 
         <div class="header-right">
 
 
-            <!-- API 状态 -->
+            <!-- =================================================
+                 API 状态 + 数据库数量
+            ================================================== -->
 
             <div class="server-status">
+
+
+                <!-- 状态圆点 -->
 
                 <span
                     class="server-dot"
                     id="serverDot"
                 ></span>
 
+
+                <!-- API 状态 -->
 
                 <span id="serverStatus">
                     API 服务检查中...
@@ -158,10 +203,14 @@
                     数据库：检查中...
                 </span>
 
+
             </div>
 
 
-            <!-- 退出登录 -->
+
+            <!-- =================================================
+                 退出登录
+            ================================================== -->
 
             <button
                 class="logout"
@@ -192,12 +241,18 @@
                 统一查询
             </h3>
 
+
             <span>
                 支持批量查询
             </span>
 
         </div>
 
+
+
+        <!-- =================================================
+             查询输入框
+        ================================================== -->
 
         <textarea
             id="q"
@@ -206,6 +261,7 @@
 支持 Excel 一列直接粘贴；
 多个号码可使用换行、空格、逗号、分号分隔。"
         ></textarea>
+
 
 
         <div class="tip">
@@ -227,6 +283,8 @@
             <div class="options">
 
 
+                <!-- 模糊查询 -->
+
                 <label class="checkbox">
 
                     <input
@@ -240,6 +298,9 @@
 
                 </label>
 
+
+
+                <!-- 返回数量 -->
 
                 <div class="limit-box">
 
@@ -257,9 +318,11 @@
                             50
                         </option>
 
+
                         <option value="100">
                             100
                         </option>
+
 
                         <option
                             value="200"
@@ -283,7 +346,7 @@
 
 
             <!-- =================================================
-                 查询按钮
+                 操作按钮
             ================================================== -->
 
             <div class="buttons">
@@ -362,6 +425,8 @@
     <div class="stats">
 
 
+        <!-- 查询结果 -->
+
         <div class="stat">
 
             <div class="stat-label">
@@ -380,6 +445,8 @@
 
 
 
+        <!-- 查询成功 -->
+
         <div class="stat">
 
             <div class="stat-label">
@@ -397,6 +464,8 @@
         </div>
 
 
+
+        <!-- 未找到 -->
 
         <div class="stat">
 
@@ -502,7 +571,7 @@ let token =
 
 
 /* =========================================================
-   如果没有 Token
+   未登录
 ========================================================= */
 
 if (!token) {
@@ -650,13 +719,14 @@ function setStatus(
 
 
 /* =========================================================
-   统一请求
+   API 请求
 ========================================================= */
 
 async function apiFetch(
     url,
     options = {}
 ) {
+
 
     token =
         sessionStorage.getItem(
@@ -678,6 +748,7 @@ async function apiFetch(
     }
 
 
+
     const headers = {
 
         ...(options.headers || {}),
@@ -686,6 +757,7 @@ async function apiFetch(
             "Bearer " + token
 
     };
+
 
 
     const response =
@@ -698,8 +770,9 @@ async function apiFetch(
         );
 
 
+
     /* =====================================================
-       Token 失效
+       登录过期
     ====================================================== */
 
     if (
@@ -745,6 +818,7 @@ async function searchData() {
         q.value.trim();
 
 
+
     if (!text) {
 
         setStatus(
@@ -758,6 +832,7 @@ async function searchData() {
         return;
 
     }
+
 
 
     searchBtn.disabled =
@@ -774,6 +849,7 @@ async function searchData() {
     );
 
 
+
     try {
 
 
@@ -785,6 +861,7 @@ async function searchData() {
                     method:
                         "POST",
 
+
                     headers: {
 
                         "Content-Type":
@@ -792,14 +869,17 @@ async function searchData() {
 
                     },
 
+
                     body:
                         JSON.stringify({
 
                             query:
                                 text,
 
+
                             fuzzy:
                                 fuzzy.checked,
+
 
                             limit:
                                 Math.min(
@@ -818,7 +898,9 @@ async function searchData() {
             );
 
 
+
         let data = {};
+
 
 
         try {
@@ -833,6 +915,7 @@ async function searchData() {
             );
 
         }
+
 
 
         if (
@@ -851,6 +934,7 @@ async function searchData() {
         }
 
 
+
         rows =
             Array.isArray(
                 data.results
@@ -859,8 +943,9 @@ async function searchData() {
                 : [];
 
 
+
         /* =================================================
-           统计
+           查询统计
         ================================================== */
 
         document
@@ -868,6 +953,7 @@ async function searchData() {
             .textContent =
             data.total ??
             rows.length;
+
 
 
         document
@@ -880,6 +966,7 @@ async function searchData() {
             ).length;
 
 
+
         document
             .getElementById("n")
             .textContent =
@@ -890,7 +977,9 @@ async function searchData() {
             ).length;
 
 
+
         render();
+
 
 
         setStatus(
@@ -900,6 +989,7 @@ async function searchData() {
         );
 
 
+
     } catch (e) {
 
 
@@ -907,6 +997,7 @@ async function searchData() {
             "查询错误：",
             e
         );
+
 
 
         if (
@@ -1100,8 +1191,10 @@ function render() {
     `;
 
 
+
     resultBox.innerHTML =
         html;
+
 
 
     resultInfo.textContent =
@@ -1128,6 +1221,7 @@ function clearAll() {
         [];
 
 
+
     document
         .getElementById("t")
         .textContent =
@@ -1144,6 +1238,7 @@ function clearAll() {
         .getElementById("n")
         .textContent =
         "0";
+
 
 
     resultBox.innerHTML = `
@@ -1163,8 +1258,10 @@ function clearAll() {
     `;
 
 
+
     resultInfo.textContent =
         "暂无数据";
+
 
 
     setStatus(
@@ -1194,8 +1291,10 @@ async function copyResults() {
     }
 
 
+
     const header =
         "序号\t查询类型\t表身号\tIMEI\t厂家归属\t状态";
+
 
 
     const text =
@@ -1242,9 +1341,11 @@ async function copyResults() {
             .writeText(text);
 
 
+
         setStatus(
             "查询结果已复制到剪贴板"
         );
+
 
 
     } catch (e) {
@@ -1282,6 +1383,7 @@ async function exportExcel() {
     }
 
 
+
     exportBtn.disabled =
         true;
 
@@ -1296,6 +1398,7 @@ async function exportExcel() {
     );
 
 
+
     try {
 
 
@@ -1307,12 +1410,14 @@ async function exportExcel() {
                     method:
                         "POST",
 
+
                     headers: {
 
                         "Content-Type":
                             "application/json"
 
                     },
+
 
                     body:
                         JSON.stringify({
@@ -1326,10 +1431,12 @@ async function exportExcel() {
             );
 
 
+
         if (!response.ok) {
 
 
             let data = {};
+
 
 
             try {
@@ -1340,6 +1447,7 @@ async function exportExcel() {
             } catch {}
 
 
+
             throw new Error(
                 data.message ||
                 "导出失败"
@@ -1348,14 +1456,17 @@ async function exportExcel() {
         }
 
 
+
         const blob =
             await response.blob();
+
 
 
         const url =
             URL.createObjectURL(
                 blob
             );
+
 
 
         const a =
@@ -1372,6 +1483,7 @@ async function exportExcel() {
             "穗水表身号查询结果.xlsx";
 
 
+
         document.body.appendChild(
             a
         );
@@ -1381,6 +1493,7 @@ async function exportExcel() {
 
 
         a.remove();
+
 
 
         setTimeout(
@@ -1395,15 +1508,18 @@ async function exportExcel() {
         );
 
 
+
         setStatus(
             "Excel 导出完成"
         );
+
 
 
     } catch (e) {
 
 
         console.error(e);
+
 
 
         if (
@@ -1457,7 +1573,7 @@ function logout() {
 
 /* =========================================================
    API 健康检查
-   同时读取数据库数量
+   同时获取数据库记录数量
 ========================================================= */
 
 async function checkAPI() {
@@ -1466,24 +1582,25 @@ async function checkAPI() {
     try {
 
 
-        /*
-         * /api/health 不需要登录
-         */
-
         const response =
             await fetch(
                 API_BASE +
                 "/api/health",
                 {
+
                     method:
                         "GET",
+
                     cache:
                         "no-store"
+
                 }
             );
 
 
+
         let data = {};
+
 
 
         try {
@@ -1517,51 +1634,41 @@ async function checkAPI() {
                 "#22c55e";
 
 
-            /*
-             * 数据库记录数
-             */
+
+            /* =================================================
+               数据库数量
+            ================================================== */
+
+            const records =
+                Number(
+                    data.records
+                );
+
+
 
             if (
-                data.records !==
-                undefined &&
-                data.records !==
-                null
+                Number.isFinite(
+                    records
+                )
             ) {
 
 
-                const records =
-                    Number(
-                        data.records
-                    );
-
-
-                if (
-                    Number.isFinite(
-                        records
-                    )
-                ) {
-
-                    dbStatus.textContent =
-                        "数据库：" +
-                        records.toLocaleString(
-                            "zh-CN"
-                        ) +
-                        " 条";
-
-                } else {
-
-                    dbStatus.textContent =
-                        "数据库：未知";
-
-                }
+                dbStatus.textContent =
+                    "数据库：" +
+                    records.toLocaleString(
+                        "zh-CN"
+                    ) +
+                    " 条";
 
 
             } else {
+
 
                 dbStatus.textContent =
                     "数据库：未知";
 
             }
+
 
 
         } else {
@@ -1581,6 +1688,7 @@ async function checkAPI() {
         }
 
 
+
     } catch (e) {
 
 
@@ -1588,6 +1696,7 @@ async function checkAPI() {
             "API 健康检查失败：",
             e
         );
+
 
 
         serverStatus.textContent =
@@ -1627,6 +1736,7 @@ async function checkLogin() {
             );
 
 
+
         if (!response.ok) {
 
             throw new Error(
@@ -1634,6 +1744,7 @@ async function checkLogin() {
             );
 
         }
+
 
 
     } catch (e) {

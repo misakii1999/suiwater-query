@@ -1,89 +1,286 @@
 <!doctype html>
 <html lang="zh-CN">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>登录 - 穗水表身号查询系统</title>
-<link rel="stylesheet" href="./style.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+
+    <title>登录 - 穗水表身号查询系统</title>
+
+    <link rel="stylesheet" href="./style.css">
 </head>
+
 <body class="login-page">
+
 <div class="login-box">
-  <div class="logo">水</div>
-  <h1>穗水表身号查询系统</h1>
-  <div class="login-sub">请输入账号和密码登录</div>
 
-  <form id="loginForm">
-    <div class="field">
-      <label for="username">用户名</label>
-      <input id="username" autocomplete="username" placeholder="请输入用户名" required>
+    <div class="logo">
+        💧
     </div>
 
-    <div class="field">
-      <label for="password">密码</label>
-      <input id="password" type="password" autocomplete="current-password" placeholder="请输入密码" required>
+    <h1>
+        穗水表身号查询系统
+    </h1>
+
+    <div class="login-sub">
+        请输入账号和密码登录
     </div>
 
-    <button class="login-btn" id="loginBtn" type="submit">登录</button>
-    <div class="login-error" id="error"></div>
-  </form>
 
-  <div class="login-footer">穗水表身号查询系统</div>
+    <form id="loginForm">
+
+        <div class="field">
+
+            <label for="username">
+                用户名
+            </label>
+
+            <input
+                id="username"
+                type="text"
+                autocomplete="username"
+                placeholder="请输入用户名"
+                required
+            >
+
+        </div>
+
+
+        <div class="field">
+
+            <label for="password">
+                密码
+            </label>
+
+            <input
+                id="password"
+                type="password"
+                autocomplete="current-password"
+                placeholder="请输入密码"
+                required
+            >
+
+        </div>
+
+
+        <button
+            class="login-btn"
+            id="loginBtn"
+            type="submit"
+        >
+            登录
+        </button>
+
+
+        <div
+            class="login-error"
+            id="error"
+        ></div>
+
+    </form>
+
+
+    <div class="login-footer">
+        穗水表身号查询系统
+    </div>
+
 </div>
 
+
 <script>
-const API_BASE = "https://sg.oixvideos.top";
 
-if (sessionStorage.getItem("suiwater_token")) {
-  fetch(API_BASE + "/api/auth/check", {
-    headers: {
-      "Authorization": "Bearer " + sessionStorage.getItem("suiwater_token")
-    }
-  }).then(x => {
-    if (x.ok) location.replace("query.html");
-    else sessionStorage.removeItem("suiwater_token");
-  }).catch(() => {});
-}
+/* =========================================================
+   API
+========================================================= */
 
-document.getElementById("loginForm").addEventListener("submit", async function(e) {
-  e.preventDefault();
+const API_BASE =
+    "https://sg.oixvideos.top";
 
-  const username = document.getElementById("username").value.trim();
-  const password = document.getElementById("password").value;
-  const error = document.getElementById("error");
-  const btn = document.getElementById("loginBtn");
 
-  error.textContent = "";
-  btn.disabled = true;
-  btn.textContent = "⏳ 登录中...";
+/* =========================================================
+   检查已有登录
+========================================================= */
 
-  try {
-    const response = await fetch(API_BASE + "/api/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        username: username,
-        password: password
-      })
+const oldToken =
+    sessionStorage.getItem("suiwater_token");
+
+
+if (oldToken) {
+
+    fetch(
+        API_BASE + "/api/auth/check",
+        {
+            method: "GET",
+            headers: {
+                "Authorization":
+                    "Bearer " + oldToken
+            }
+        }
+    )
+    .then(response => {
+
+        if (response.ok) {
+
+            location.replace("query.html");
+
+        } else {
+
+            sessionStorage.removeItem(
+                "suiwater_token"
+            );
+
+        }
+
+    })
+    .catch(() => {
+
+        sessionStorage.removeItem(
+            "suiwater_token"
+        );
+
     });
 
-    const data = await response.json();
+}
 
-    if (!response.ok || !data.success) {
-      throw new Error(data.message || "登录失败");
-    }
 
-    sessionStorage.setItem("suiwater_token", data.token);
-    location.replace("query.html");
+/* =========================================================
+   登录
+========================================================= */
 
-  } catch (e) {
-    error.textContent = e.message || "登录失败";
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "登录";
-  }
-});
+document
+    .getElementById("loginForm")
+    .addEventListener(
+        "submit",
+        async function (event) {
+
+            event.preventDefault();
+
+
+            const username =
+                document
+                    .getElementById("username")
+                    .value
+                    .trim();
+
+
+            const password =
+                document
+                    .getElementById("password")
+                    .value;
+
+
+            const error =
+                document
+                    .getElementById("error");
+
+
+            const button =
+                document
+                    .getElementById("loginBtn");
+
+
+            error.textContent = "";
+
+
+            if (!username || !password) {
+
+                error.textContent =
+                    "请输入用户名和密码";
+
+                return;
+            }
+
+
+            button.disabled = true;
+
+            button.textContent =
+                "⏳ 登录中...";
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        API_BASE + "/api/login",
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body:
+                                JSON.stringify({
+                                    username:
+                                        username,
+                                    password:
+                                        password
+                                })
+                        }
+                    );
+
+
+                const data =
+                    await response.json()
+                        .catch(() => ({}));
+
+
+                if (
+                    !response.ok ||
+                    !data.success
+                ) {
+
+                    throw new Error(
+                        data.message ||
+                        "登录失败"
+                    );
+
+                }
+
+
+                if (!data.token) {
+
+                    throw new Error(
+                        "服务器没有返回登录 Token"
+                    );
+
+                }
+
+
+                sessionStorage.setItem(
+                    "suiwater_token",
+                    data.token
+                );
+
+
+                location.replace(
+                    "query.html"
+                );
+
+
+            } catch (e) {
+
+                console.error(e);
+
+                error.textContent =
+                    e.message ||
+                    "登录失败";
+
+
+            } finally {
+
+                button.disabled = false;
+
+                button.textContent =
+                    "登录";
+
+            }
+
+        }
+    );
+
 </script>
+
 </body>
 </html>

@@ -17,28 +17,35 @@
     <!-- =========================
          顶部
     ========================== -->
-    <div class="header">
 
-        <div>
-            <h1>💧 穗水表身号查询系统</h1>
+    <div class="card header">
 
-            <div class="sub">
-                水表信息快速查询与数据管理
+        <div class="logo-area">
+
+            <div class="logo">
+                💧
             </div>
+
+            <div class="title">
+
+                <h1>穗水表身号查询系统</h1>
+
+                <div class="sub">
+                    表身号 / IMEI 统一查询 · 精确 · 模糊 · 批量
+                </div>
+
+            </div>
+
         </div>
 
-        <div class="header-right">
 
-            <span class="api-status">
-                <span class="ok">●</span>
+        <div class="server-status">
+
+            <span class="server-dot"></span>
+
+            <span id="apiStatus">
                 API 服务正常
             </span>
-
-            <button
-                class="logout"
-                id="logoutBtn">
-                退出登录
-            </button>
 
         </div>
 
@@ -48,111 +55,152 @@
     <!-- =========================
          查询区域
     ========================== -->
-    <div class="card">
 
-        <h3>统一查询</h3>
+    <div class="card search-card">
+
+        <div class="section-title">
+
+            <h3>
+                统一查询
+            </h3>
+
+            <span>
+                支持批量查询
+            </span>
+
+        </div>
+
+
+        <!-- 输入框 -->
 
         <textarea
-            id="queryInput"
-            placeholder="请输入表身号，每行一个&#10;&#10;例如：&#10;123456789&#10;987654321"></textarea>
+            id="q"
+            placeholder="请输入表身号或 IMEI
+
+支持 Excel 一列直接粘贴；
+多个号码可使用换行、空格、逗号、分号分隔。"
+        ></textarea>
+
+
+        <!-- 提示 -->
 
         <div class="tip">
-            支持一次输入多个表身号，每行一个。
-            开启模糊查询后，可匹配包含查询内容的表身号。
+
+            精确查询自动判断表身号或 IMEI；
+            开启模糊查询后，将同时搜索表身号和 IMEI。
+
         </div>
 
 
         <!-- =========================
-             查询工具栏
-             左：查询选项
-             右：操作按钮
+             控制栏
         ========================== -->
 
-        <div class="query-toolbar">
+        <div class="toolbar">
 
-            <!-- 左侧 -->
-            <div class="query-options">
 
-                <label>
+            <!-- 左侧选项 -->
+
+            <div class="options">
+
+                <label class="checkbox">
+
                     <input
                         type="checkbox"
-                        id="fuzzy">
+                        id="fuzzy"
+                    >
 
-                    开启模糊查询
+                    <span>
+                        开启模糊查询
+                    </span>
+
                 </label>
 
 
-                <label>
-                    最多返回
+                <div class="limit-box">
 
-                    <select
+                    <span>
+                        最多返回
+                    </span>
+
+                    <input
+                        class="limit"
                         id="limit"
-                        class="limit">
+                        type="number"
+                        min="1"
+                        max="1000"
+                        value="200"
+                    >
 
-                        <option value="50">
-                            50
-                        </option>
+                    <span>
+                        条
+                    </span>
 
-                        <option value="100">
-                            100
-                        </option>
-
-                        <option
-                            value="200"
-                            selected>
-                            200
-                        </option>
-
-                    </select>
-
-                    条
-                </label>
+                </div>
 
             </div>
 
 
-            <!-- 右侧 -->
-            <div class="query-actions">
+            <!-- 右侧按钮 -->
+
+            <div class="buttons">
 
                 <button
                     type="button"
-                    id="queryBtn"
-                    class="p">
-                    查询
+                    class="btn-primary"
+                    id="searchBtn"
+                    onclick="searchData()"
+                >
+                    🔍 查询
                 </button>
 
 
                 <button
                     type="button"
-                    id="clearBtn"
-                    class="secondary">
+                    class="btn-normal"
+                    onclick="clearAll()"
+                >
                     清空
                 </button>
 
 
                 <button
                     type="button"
-                    id="copyBtn"
-                    class="secondary">
+                    class="btn-normal"
+                    onclick="copyResults()"
+                >
                     复制结果
                 </button>
 
 
                 <button
                     type="button"
+                    class="btn-green"
                     id="exportBtn"
-                    class="s">
+                    onclick="exportExcel()"
+                >
                     导出 Excel
                 </button>
 
-
-                <span
-                    class="query-status"
-                    id="queryStatus">
-                    等待查询
-                </span>
-
             </div>
+
+        </div>
+
+
+        <!-- =========================
+             查询状态
+        ========================== -->
+
+        <div class="status-bar">
+
+            <span
+                class="status-icon"
+                id="statusIcon"
+            ></span>
+
+            <span id="status">
+                就绪
+            </span>
 
         </div>
 
@@ -160,20 +208,22 @@
 
 
     <!-- =========================
-         统计卡片
+         统计
     ========================== -->
 
     <div class="stats">
 
+
         <div class="stat">
 
-            <div class="stat-title">
-                查询数量
+            <div class="stat-label">
+                查询结果
             </div>
 
             <div
                 class="num"
-                id="queryCount">
+                id="t"
+            >
                 0
             </div>
 
@@ -182,13 +232,14 @@
 
         <div class="stat">
 
-            <div class="stat-title">
-                匹配数量
+            <div class="stat-label">
+                查询成功
             </div>
 
             <div
                 class="num"
-                id="matchCount">
+                id="f"
+            >
                 0
             </div>
 
@@ -197,13 +248,14 @@
 
         <div class="stat">
 
-            <div class="stat-title">
-                未匹配数量
+            <div class="stat-label">
+                未找到
             </div>
 
             <div
                 class="num"
-                id="noMatchCount">
+                id="n"
+            >
                 0
             </div>
 
@@ -218,41 +270,40 @@
 
     <div class="card result-card">
 
-        <h3>查询结果</h3>
 
-        <div class="scroll">
+        <div class="result-head">
 
-            <table id="resultTable">
-
-                <thead>
-
-                    <tr>
-                        <th>序号</th>
-                        <th>查询类型</th>
-                        <th>表身号</th>
-                        <th>IMEI</th>
-                        <th>厂家归属</th>
-                        <th>状态</th>
-                    </tr>
-
-                </thead>
+            <h3>
+                查询结果
+            </h3>
 
 
-                <tbody id="resultBody">
+            <div
+                class="result-info"
+                id="resultInfo"
+            >
+                暂无数据
+            </div>
 
-                    <tr>
+        </div>
 
-                        <td
-                            colspan="6"
-                            class="empty">
-                            暂无查询结果
-                        </td>
 
-                    </tr>
+        <div
+            class="scroll"
+            id="r"
+        >
 
-                </tbody>
+            <div class="empty">
 
-            </table>
+                <div class="empty-icon">
+                    🔎
+                </div>
+
+                <div>
+                    暂无查询结果
+                </div>
+
+            </div>
 
         </div>
 
@@ -263,468 +314,795 @@
 
 <script>
 
-/* =========================
-   元素
-========================= */
+/* =========================================================
+   API 配置
+========================================================= */
 
-const queryInput =
-    document.getElementById("queryInput");
+const API_BASE =
+    "https://sg.oixvideos.top";
 
-const fuzzy =
-    document.getElementById("fuzzy");
-
-const limit =
-    document.getElementById("limit");
+const API_KEY =
+    "SuiWater-8925-02147039-89";
 
 
-const queryBtn =
-    document.getElementById("queryBtn");
+/* 当前结果 */
 
-const clearBtn =
-    document.getElementById("clearBtn");
-
-const copyBtn =
-    document.getElementById("copyBtn");
-
-const exportBtn =
-    document.getElementById("exportBtn");
+let rows = [];
 
 
-const queryStatus =
-    document.getElementById("queryStatus");
+/* =========================================================
+   HTML 转义
+========================================================= */
+
+const esc = x => {
+
+    let d =
+        document.createElement("div");
+
+    d.textContent =
+        x ?? "";
+
+    return d.innerHTML;
+
+};
 
 
-const queryCount =
-    document.getElementById("queryCount");
+/* =========================================================
+   状态
+========================================================= */
 
-const matchCount =
-    document.getElementById("matchCount");
+function setStatus(
+    text,
+    loading = false
+) {
 
-const noMatchCount =
-    document.getElementById("noMatchCount");
+    const status =
+        document.getElementById("status");
 
-
-const resultBody =
-    document.getElementById("resultBody");
-
-
-const logoutBtn =
-    document.getElementById("logoutBtn");
+    const icon =
+        document.getElementById("statusIcon");
 
 
-/* =========================
-   当前查询结果
-========================= */
-
-let currentResults = [];
+    status.textContent =
+        text;
 
 
-/* =========================
+    if (loading) {
+
+        icon.style.background =
+            "#f59e0b";
+
+    } else {
+
+        icon.style.background =
+            "#22c55e";
+
+    }
+
+}
+
+
+/* =========================================================
    查询
-========================= */
+========================================================= */
 
-queryBtn.addEventListener("click", async function () {
+async function searchData() {
 
     const text =
-        queryInput.value.trim();
+        document
+            .getElementById("q")
+            .value
+            .trim();
 
 
     if (!text) {
 
-        queryStatus.textContent =
-            "请输入表身号";
+        alert(
+            "请输入表身号或 IMEI"
+        );
 
         return;
+
     }
 
 
-    const values =
-        text
-            .split(/\r?\n/)
-            .map(v => v.trim())
-            .filter(Boolean);
+    const fuzzy =
+        document.getElementById("fuzzy");
 
 
-    queryStatus.textContent =
-        "正在查询...";
+    const limit =
+        document.getElementById("limit");
 
 
-    queryBtn.disabled = true;
+    const btn =
+        document.getElementById("searchBtn");
+
+
+    setStatus(
+        "正在查询，请稍候...",
+        true
+    );
+
+
+    btn.disabled = true;
+
+    btn.textContent =
+        "⏳ 查询中...";
 
 
     try {
 
-        const response =
-            await fetch("/api/query", {
+        const x =
+            await fetch(
 
-                method: "POST",
+                API_BASE +
+                "/api/search",
 
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                {
 
-                body: JSON.stringify({
+                    method: "POST",
 
-                    values: values,
+                    headers: {
 
-                    fuzzy: fuzzy.checked,
+                        "Content-Type":
+                            "application/json",
 
-                    limit: Number(limit.value)
+                        "X-API-Key":
+                            API_KEY
 
-                })
+                    },
 
-            });
+                    body:
+                        JSON.stringify({
+
+                            query:
+                                text,
+
+                            fuzzy:
+                                fuzzy.checked,
+
+                            limit:
+                                Math.min(
+
+                                    Math.max(
+
+                                        Number(
+                                            limit.value
+                                        ) || 200,
+
+                                        1
+
+                                    ),
+
+                                    1000
+
+                                )
+
+                        })
+
+                }
+
+            );
 
 
-        if (!response.ok) {
+        let d =
+            await x.json();
 
-            throw new Error("查询失败");
+
+        if (
+            !x.ok ||
+            !d.success
+        ) {
+
+            throw new Error(
+
+                d.message ||
+                ("HTTP " + x.status)
+
+            );
 
         }
 
 
-        const data =
-            await response.json();
+        rows =
+            d.results || [];
 
 
-        currentResults =
-            Array.isArray(data)
-                ? data
-                : (data.results || []);
+        document
+            .getElementById("t")
+            .textContent =
+            d.total || 0;
 
 
-        renderResults(
-            currentResults
+        document
+            .getElementById("f")
+            .textContent =
+            d.found || 0;
+
+
+        document
+            .getElementById("n")
+            .textContent =
+            d.not_found || 0;
+
+
+        render();
+
+
+        setStatus(
+
+            "查询完成，共 " +
+            rows.length +
+            " 条"
+
         );
 
 
-        queryCount.textContent =
-            values.length;
+    } catch (e) {
+
+        console.error(e);
 
 
-        matchCount.textContent =
-            currentResults.length;
+        setStatus(
 
+            "查询失败：" +
+            e.message
 
-        noMatchCount.textContent =
-            Math.max(
-                0,
-                values.length -
-                currentResults.length
-            );
-
-
-        queryStatus.textContent =
-            `查询完成，共返回 ${currentResults.length} 条`;
-
-
-    } catch (error) {
-
-        console.error(error);
-
-        queryStatus.textContent =
-            "查询失败，请检查 API 服务";
-
+        );
 
     } finally {
 
-        queryBtn.disabled = false;
+        btn.disabled = false;
+
+        btn.textContent =
+            "🔍 查询";
 
     }
-
-});
-
-
-/* =========================
-   渲染结果
-========================= */
-
-function renderResults(results) {
-
-    resultBody.innerHTML = "";
-
-
-    if (!results || results.length === 0) {
-
-        resultBody.innerHTML = `
-            <tr>
-                <td colspan="6" class="empty">
-                    暂无匹配结果
-                </td>
-            </tr>
-        `;
-
-        return;
-    }
-
-
-    results.forEach((row, index) => {
-
-        const tr =
-            document.createElement("tr");
-
-
-        const queryType =
-            row["查询类型"] ??
-            row.query_type ??
-            row.type ??
-            "";
-
-
-        const meter =
-            row["表身号"] ??
-            row.meter_no ??
-            row.meter ??
-            "";
-
-
-        const imei =
-            row["IMEI"] ??
-            row.imei ??
-            "";
-
-
-        const factory =
-            row["厂家归属"] ??
-            row.factory ??
-            "";
-
-
-        const status =
-            row["状态"] ??
-            row.status ??
-            "";
-
-
-        tr.innerHTML = `
-
-            <td>
-                ${index + 1}
-            </td>
-
-            <td>
-                ${escapeHtml(queryType)}
-            </td>
-
-            <td>
-                ${escapeHtml(meter)}
-            </td>
-
-            <td>
-                ${escapeHtml(imei)}
-            </td>
-
-            <td>
-                ${escapeHtml(factory)}
-            </td>
-
-            <td>
-                ${
-                    status
-                    ? `<span class="ok">
-                        ${escapeHtml(status)}
-                       </span>`
-                    : `<span class="no">
-                        未匹配
-                       </span>`
-                }
-            </td>
-
-        `;
-
-
-        resultBody.appendChild(tr);
-
-    });
 
 }
 
 
-/* =========================
-   清空
-========================= */
+/* =========================================================
+   渲染结果
+========================================================= */
 
-clearBtn.addEventListener("click", function () {
+function render() {
 
-    queryInput.value = "";
-
-
-    resultBody.innerHTML = `
-        <tr>
-            <td colspan="6" class="empty">
-                暂无查询结果
-            </td>
-        </tr>
-    `;
+    const box =
+        document.getElementById("r");
 
 
-    queryCount.textContent = "0";
-
-    matchCount.textContent = "0";
-
-    noMatchCount.textContent = "0";
-
-
-    queryStatus.textContent =
-        "等待查询";
+    const info =
+        document.getElementById(
+            "resultInfo"
+        );
 
 
-    currentResults = [];
+    if (!rows.length) {
 
-});
+        box.innerHTML = `
+
+            <div class="empty">
+
+                <div class="empty-icon">
+                    🔎
+                </div>
+
+                <div>
+                    暂无查询结果
+                </div>
+
+            </div>
+
+        `;
 
 
-/* =========================
-   复制结果
-========================= */
+        info.textContent =
+            "暂无数据";
 
-copyBtn.addEventListener("click", async function () {
-
-    if (!currentResults.length) {
-
-        queryStatus.textContent =
-            "暂无结果可复制";
 
         return;
+
     }
 
 
-    const header =
-        "序号\t查询类型\t表身号\tIMEI\t厂家归属\t状态";
+    let h = `
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        序号
+                    </th>
+
+                    <th>
+                        查询类型
+                    </th>
+
+                    <th>
+                        表身号
+                    </th>
+
+                    <th>
+                        IMEI
+                    </th>
+
+                    <th>
+                        厂家归属
+                    </th>
+
+                    <th>
+                        状态
+                    </th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+    `;
 
 
-    const rows =
-        currentResults.map(
-            (row, index) => {
+    rows.forEach(
+        (x, i) => {
 
-                return [
+            h += `
 
-                    index + 1,
+                <tr>
 
-                    row["查询类型"] ??
-                    row.query_type ??
-                    row.type ??
-                    "",
+                    <td>
+                        ${i + 1}
+                    </td>
 
-                    row["表身号"] ??
-                    row.meter_no ??
-                    row.meter ??
-                    "",
+                    <td>
+                        ${esc(
+                            x.query_type
+                        )}
+                    </td>
 
-                    row["IMEI"] ??
-                    row.imei ??
-                    "",
+                    <td>
+                        ${esc(
+                            x.meter_no
+                        )}
+                    </td>
 
-                    row["厂家归属"] ??
-                    row.factory ??
-                    "",
+                    <td>
+                        ${esc(
+                            x.imei
+                        )}
+                    </td>
 
-                    row["状态"] ??
-                    row.status ??
-                    ""
+                    <td>
+                        ${esc(
+                            x.owner || "-"
+                        )}
+                    </td>
 
-                ].join("\t");
+                    <td class="${
+                        x.status ===
+                        "已找到"
+                            ? "ok"
+                            : "no"
+                    }">
+
+                        ${esc(
+                            x.status
+                        )}
+
+                    </td>
+
+                </tr>
+
+            `;
+
+        }
+    );
+
+
+    h += `
+
+            </tbody>
+
+        </table>
+
+    `;
+
+
+    box.innerHTML =
+        h;
+
+
+    info.textContent =
+        "共 " +
+        rows.length +
+        " 条";
+
+}
+
+
+/* =========================================================
+   清空
+========================================================= */
+
+function clearAll() {
+
+    document
+        .getElementById("q")
+        .value = "";
+
+
+    rows = [];
+
+
+    document
+        .getElementById("t")
+        .textContent =
+        "0";
+
+
+    document
+        .getElementById("f")
+        .textContent =
+        "0";
+
+
+    document
+        .getElementById("n")
+        .textContent =
+        "0";
+
+
+    document
+        .getElementById("r")
+        .innerHTML = `
+
+            <div class="empty">
+
+                <div class="empty-icon">
+                    🔎
+                </div>
+
+                <div>
+                    暂无查询结果
+                </div>
+
+            </div>
+
+        `;
+
+
+    document
+        .getElementById(
+            "resultInfo"
+        )
+        .textContent =
+        "暂无数据";
+
+
+    setStatus(
+        "就绪"
+    );
+
+}
+
+
+/* =========================================================
+   复制结果
+========================================================= */
+
+async function copyResults() {
+
+    if (!rows.length) {
+
+        alert(
+            "没有查询结果"
+        );
+
+        return;
+
+    }
+
+
+    const text = [
+
+        "序号\t查询类型\t表身号\tIMEI\t厂家归属\t状态",
+
+        ...rows.map(
+            (x, i) =>
+
+                `${i + 1}\t` +
+                `${x.query_type || ""}\t` +
+                `${x.meter_no || ""}\t` +
+                `${x.imei || ""}\t` +
+                `${x.owner || ""}\t` +
+                `${x.status || ""}`
+
+        )
+
+    ].join("\n");
+
+
+    try {
+
+        await navigator
+            .clipboard
+            .writeText(text);
+
+
+        setStatus(
+            "查询结果已复制到剪贴板"
+        );
+
+
+    } catch (e) {
+
+        alert(
+            "复制失败，请检查浏览器剪贴板权限"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   导出 Excel
+========================================================= */
+
+async function exportExcel() {
+
+    if (!rows.length) {
+
+        alert(
+            "没有可导出的数据"
+        );
+
+        return;
+
+    }
+
+
+    const btn =
+        document.getElementById(
+            "exportBtn"
+        );
+
+
+    btn.disabled = true;
+
+    btn.textContent =
+        "⏳ 导出中...";
+
+
+    setStatus(
+        "正在生成 Excel，请稍候...",
+        true
+    );
+
+
+    try {
+
+        const x =
+            await fetch(
+
+                API_BASE +
+                "/api/export",
+
+                {
+
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json",
+
+                        "X-API-Key":
+                            API_KEY
+
+                    },
+
+                    body:
+                        JSON.stringify({
+
+                            results:
+                                rows
+
+                        })
+
+                }
+
+            );
+
+
+        if (!x.ok) {
+
+            const d =
+                await x.json()
+                    .catch(
+                        () => ({})
+                    );
+
+
+            throw new Error(
+
+                d.message ||
+                "导出失败"
+
+            );
+
+        }
+
+
+        const b =
+            await x.blob();
+
+
+        const u =
+            URL.createObjectURL(b);
+
+
+        const a =
+            document.createElement(
+                "a"
+            );
+
+
+        a.href =
+            u;
+
+
+        a.download =
+            "穗水表身号查询结果.xlsx";
+
+
+        document
+            .body
+            .appendChild(a);
+
+
+        a.click();
+
+
+        a.remove();
+
+
+        setTimeout(
+            () => {
+
+                URL.revokeObjectURL(
+                    u
+                );
+
+            },
+            1000
+        );
+
+
+        setStatus(
+            "Excel 导出完成"
+        );
+
+
+    } catch (e) {
+
+        setStatus(
+            "导出失败：" +
+            e.message
+        );
+
+
+    } finally {
+
+        btn.disabled = false;
+
+        btn.textContent =
+            "导出 Excel";
+
+    }
+
+}
+
+
+/* =========================================================
+   Ctrl + Enter 查询
+========================================================= */
+
+document
+    .getElementById("q")
+    .addEventListener(
+
+        "keydown",
+
+        e => {
+
+            if (
+                e.ctrlKey &&
+                e.key === "Enter"
+            ) {
+
+                e.preventDefault();
+
+                searchData();
 
             }
+
+        }
+
+    );
+
+
+/* =========================================================
+   检查 API
+========================================================= */
+
+async function checkAPI() {
+
+    const apiStatus =
+        document.getElementById(
+            "apiStatus"
         );
 
 
     try {
 
-        await navigator.clipboard.writeText(
-            [header, ...rows].join("\n")
-        );
+        const x =
+            await fetch(
+
+                API_BASE +
+                "/api/health",
+
+                {
+                    method: "GET"
+                }
+
+            );
 
 
-        queryStatus.textContent =
-            "结果已复制";
+        const d =
+            await x.json();
 
 
-    } catch (error) {
+        if (
+            x.ok &&
+            d.success
+        ) {
 
-        queryStatus.textContent =
-            "复制失败";
+            apiStatus.textContent =
+                "API 服务正常 · 数据库 " +
+                Number(
+                    d.records
+                ).toLocaleString() +
+                " 条";
+
+
+        } else {
+
+            apiStatus.textContent =
+                "API 服务异常";
+
+        }
+
+
+    } catch (e) {
+
+        apiStatus.textContent =
+            "无法连接 API 服务";
 
     }
-
-});
-
-
-/* =========================
-   导出 Excel
-========================= */
-
-exportBtn.addEventListener("click", function () {
-
-    if (!currentResults.length) {
-
-        queryStatus.textContent =
-            "暂无结果可导出";
-
-        return;
-    }
-
-
-    window.location.href =
-        "/api/export";
-
-});
-
-
-/* =========================
-   退出登录
-========================= */
-
-logoutBtn.addEventListener("click", function () {
-
-    window.location.href =
-        "/logout";
-
-});
-
-
-/* =========================
-   HTML 转义
-========================= */
-
-function escapeHtml(value) {
-
-    if (
-        value === null ||
-        value === undefined
-    ) {
-        return "";
-    }
-
-
-    return String(value)
-
-        .replace(
-            /&/g,
-            "&amp;"
-        )
-
-        .replace(
-            /</g,
-            "&lt;"
-        )
-
-        .replace(
-            />/g,
-            "&gt;"
-        )
-
-        .replace(
-            /"/g,
-            "&quot;"
-        )
-
-        .replace(
-            /'/g,
-            "&#039;"
-        );
 
 }
+
+
+/* =========================================================
+   页面加载
+========================================================= */
+
+checkAPI();
 
 </script>
 
